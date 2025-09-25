@@ -1,0 +1,27 @@
+<%- include('header.ejs') %>
+
+    <div class="main-content">
+        <div class="container">
+            <h2>🌱 About Us</h2>
+            <p>EcoLearn is a gamified learning platform for Classes 6–12.</p>
+            <p>Our mission is to make education fun, accessible, and interactive.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const response = await fetch("/api/about");
+                const data = await response.json();
+                const container = document.querySelector(".container");
+                container.innerHTML = `<h2>${data.title}</h2>`;
+                data.paragraphs.forEach(p => {
+                    const para = document.createElement("p");
+                    para.textContent = p;
+                    container.appendChild(para);
+                });
+            } catch (e) { console.error(e); }
+        });
+    </script>
+
+    <%- include('footer.ejs') %>

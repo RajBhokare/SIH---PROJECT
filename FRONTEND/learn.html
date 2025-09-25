@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EcoLearn | Learn</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Logo -->
+    <a href="#" id="logoLink">
+        <img src="logo.png" alt="EcoLearn Logo" class="site-logo">
+    </a>
+
+    <div class="main-content">
+        <div class="container" id="step1">
+            <h2>Step 1: Select Class & Subject</h2>
+            <select id="classSelect">
+                <option value="">-- Select Class --</option>
+            </select>
+            <select id="subjectSelect" disabled>
+                <option value="">-- Select Subject --</option>
+            </select>
+            <button id="toStep2" disabled>Next</button>
+        </div>
+
+        <div class="container" id="step2" style="display:none;">
+            <h2>Step 2: Select Chapter</h2>
+            <div class="grid" id="chaptersGrid"></div>
+            <button id="backTo1">Back</button>
+            <button id="toStep3" disabled>Next</button>
+        </div>
+
+        <div class="container" id="step3" style="display:none;">
+            <h2>Step 3: Activities</h2>
+            <p id="pickedInfo"></p>
+            <div class="grid" id="activitiesGrid"></div>
+            <button id="backTo2">Back</button>
+        </div>
+    </div>
+
+    <script src="learn.js"></script>
+</body>
+
+</html>

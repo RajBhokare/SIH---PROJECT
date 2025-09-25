@@ -1,212 +1,425 @@
-/* Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
-
+/* ===========================
+   Global Styles
+=========================== */
 body {
-  background: #f0f0f0;
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #eef4ff; /* soft, calm, educational background */
   color: #333;
+  line-height: 1.6;
 }
 
-/* Header */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5 {
+  margin: 0.5em 0;
+  font-weight: 600;
+  color: #222;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ===========================
+   Header
+=========================== */
 .site-header {
-  background: white;
-  padding: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #fff;
+  padding: 15px 30px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.site-header img {
-  height: 60px;
-  width: auto;
-}
-
-.header-nav {
-  display: flex;
-  gap: 15px;
+.site-logo {
+  height: 55px;
 }
 
 .header-nav a {
-  text-decoration: none;
-  color: #333;
-  font-weight: bold;
+  margin: 0 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  position: relative;
 }
 
 .header-nav a:hover {
-  color: blue;
+  color: #ff6b6b; /* playful hover */
 }
 
-/* Buttons */
-.btn {
-  padding: 8px 14px;
-  border-radius: 5px;
-  text-decoration: none;
-  cursor: pointer;
+.header-nav a::after {
+  content: "";
+  display: block;
+  height: 3px;
+  width: 0;
+  background: #ff6b6b;
+  transition: width 0.3s ease;
+  position: absolute;
+  bottom: -5px;
+  left: 0;
 }
 
-.btn.primary {
-  background: blue;
-  color: white;
+.header-nav a:hover::after {
+  width: 100%;
 }
 
-.btn.primary:hover {
-  background: darkblue;
+.signup-btn {
+  background: #6c63ff;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
-.btn.ghost {
-  border: 1px solid blue;
-  color: blue;
+.signup-btn:hover {
+  background: #5a54d1;
+  transform: translateY(-2px);
 }
 
-.btn.ghost:hover {
-  background: blue;
-  color: white;
-}
-
-/* Banner */
-.main-banner {
-  background: linear-gradient(120deg, blue, skyblue);
+/* ===========================
+   Intro Section (Compact Version)
+=========================== */
+.intro-section {
   text-align: center;
-  padding: 50px 20px;
-  color: white;
-  margin: 20px;
-  border-radius: 8px;
+  padding: 35px 20px; /* slightly reduced padding */
+  background: linear-gradient(135deg, #ffe066, #ff6b6b);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  margin-bottom: 15px; /* minimal gap below intro */
 }
 
-.main-banner h2 {
-  font-size: 28px;
-  margin-bottom: 10px;
+.intro-section h2 {
+  font-size: 1.9rem; /* slightly smaller */
+  margin-bottom: 8px;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
-.main-banner p {
-  font-size: 16px;
-  margin-bottom: 15px;
+.intro-section p {
+  font-size: 1rem;
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
-/* Courses */
-.courses-section {
+/* ===========================
+   Features Section (Closer to Intro)
+=========================== */
+.features-section {
+  padding: 35px 20px; /* slightly reduced padding-top */
   text-align: center;
-  margin: 30px;
+  margin-top: -10px; /* pull section up closer to intro */
 }
 
-.courses-section h3 {
-  margin-bottom: 15px;
+.features-section h3 {
+  font-size: 1.9rem;
+  margin-bottom: 25px; /* smaller space below heading */
+  color: #222;
 }
-
-.courses-grid {
+.features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 30px;
 }
 
-.course-card {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  transition: 0.3s;
-}
-
-.course-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-/* Dashboard */
-.dashboard {
-  background: white;
-  margin: 20px;
-  padding: 20px;
-  border-radius: 8px;
+.feature-card1{
+  background: #f5cb33;
+  border-radius: 18px;
+  padding: 30px 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
   text-align: center;
+}
+.feature-card2{
+  background: #37d772;
+  border-radius: 18px;
+  padding: 30px 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+.feature-card3{
+  background: #4aa5ee;
+  border-radius: 18px;
+  padding: 30px 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+.feature-card4{
+  background: #e19352;
+  border-radius: 18px;
+  padding: 30px 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.15);
+  background: #f0f7ff;
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 18px;
+}
+
+.feature-card h4 {
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Color-coded subjects */
+.feature-card[data-subject="Mathematics"] {
+  border: 2px solid #3d5afe;
+  background: #e8eaff;
+  color: #1a237e;
+}
+.feature-card[data-subject="Science"] {
+  border: 2px solid #00bfa5;
+  background: #e0f7f4;
+  color: #00695c;
+}
+.feature-card[data-subject="Computer Science"] {
+  border: 2px solid #ff6f00;
+  background: #fff3e0;
+  color: #e65100;
+}
+.feature-card[data-subject="Exams & Quizzes"] {
+  border: 2px solid #d50000;
+  background: #ffe5e5;
+  color: #b71c1c;
+}
+
+/* Locked state */
+.feature-card.locked::after {
+  content: "🔒";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+/* ===========================
+   Promo Section
+=========================== */
+.promo-section {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.promo-img {
+  width: 80%;
+  max-width: 950px;
+  aspect-ratio: 9 / 4;
+  object-fit: cover;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.promo-img:hover {
+  transform: scale(1.04);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+}
+
+/* ===========================
+   Forms
+=========================== */
+form {
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 40px;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+form input, form select {
+  padding: 14px 18px;
+  margin: 12px 0;
+  border-radius: 12px;
+  border: 1.5px solid #ccc;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+form input:focus, form select:focus {
+  border-color: #3d5afe;
+  outline: none;
+  box-shadow: 0 0 8px rgba(61, 90, 254, 0.25);
+}
+
+form button {
+  padding: 14px 18px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #3d5afe;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+form button:hover {
+  background: #304ffe;
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   Dashboard
+=========================== */
+.dashboard {
+  text-align: center;
+  padding: 60px 20px;
+  min-height: 80vh;
+  background: #eef4ff;
 }
 
 .dashboard h2 {
+  font-size: 2.6rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.dashboard p {
+  font-size: 1.2rem;
+  color: #555;
+  margin-bottom: 35px;
+}
+
+/* Quick stats / cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 30px;
+  margin-top: 25px;
+}
+
+.dashboard-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 30px 20px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.15);
+}
+
+.dashboard-card h3 {
+  font-size: 1.4rem;
   margin-bottom: 10px;
 }
 
-.grid {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
+.dashboard-card p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
 }
 
-.stat {
-  background: #f7f7f7;
-  padding: 10px;
-  border-radius: 6px;
-}
-
-.stat strong {
-  color: blue;
-  font-size: 20px;
-}
-
-/* Games */
-.centered-card {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-}
-
-.card {
-  background: white;
-  padding: 20px;
+/* Progress bars for dashboard cards */
+.progress-bar {
+  height: 12px;
+  width: 100%;
+  background: #e0e0e0;
   border-radius: 8px;
-  max-width: 350px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-top: 12px;
+  overflow: hidden;
 }
 
-/* Footer */
+.progress-bar-fill {
+  height: 100%;
+  background: #3d5afe;
+  width: 0%;
+  border-radius: 8px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* Buttons */
+.dashboard button {
+  padding: 14px 28px;
+  background: #ff6b6b;
+  color: #fff;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+}
+
+.dashboard button:hover {
+  background: #ff3b3b;
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   Footer
+=========================== */
 .site-footer {
   background: #222;
-  color: #ccc;
-  padding: 20px;
-  margin-top: 40px;
-}
-
-.footer-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 15px;
-}
-
-.footer-col h4 {
-  margin-bottom: 10px;
-  color: white;
-}
-
-.footer-col a {
-  color: #bbb;
-  text-decoration: none;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.footer-col a:hover {
-  color: white;
-}
-
-.footer-bottom {
-  margin-top: 20px;
-  font-size: 14px;
-  color: #999;
+  color: #fff;
   text-align: center;
-  border-top: 1px solid #444;
-  padding-top: 10px;
+  padding: 28px 10px;
+  font-size: 0.95rem;
 }
 
-/* Mobile */
+/* ===========================
+   Responsive
+=========================== */
 @media (max-width: 768px) {
-  .site-header {
-    flex-direction: column;
+  .stats-grid, .features-grid {
+    grid-template-columns: 1fr;
   }
-  .grid {
-    flex-direction: column;
+
+  .intro-section h2 {
+    font-size: 2rem;
+  }
+
+  .intro-section p {
+    font-size: 1rem;
+  }
+
+  form {
+    padding: 30px;
   }
 }

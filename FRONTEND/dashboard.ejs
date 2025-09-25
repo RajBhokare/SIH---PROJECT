@@ -1,0 +1,53 @@
+<%- include('header.ejs') %>
+
+    <div class="dashboard">
+        <h2 id="welcomeText">Welcome!</h2>
+        <p id="subtitleText">Your learning journey continues here.</p>
+
+        <div class="stats-grid">
+            <div class="dashboard-card">
+                <h3>Completed Lessons</h3>
+                <p id="completedLessons">0</p>
+            </div>
+            <div class="dashboard-card">
+                <h3>Quizzes Taken</h3>
+                <p id="quizzesTaken">0</p>
+            </div>
+            <div class="dashboard-card">
+                <h3>Points Earned</h3>
+                <p id="pointsEarned">0</p>
+            </div>
+            <div class="dashboard-card">
+                <h3>Badges</h3>
+                <p id="badgesEarned">0</p>
+            </div>
+        </div>
+
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const user = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!user) {
+                alert("You must be logged in!");
+                window.location.href = "/login";
+                return;
+            }
+            document.getElementById("welcomeText").textContent = `Welcome, ${user.name} 👋`;
+
+            // Example dynamic data (replace with your real data)
+            document.getElementById("completedLessons").textContent = user.completedLessons || 0;
+            document.getElementById("quizzesTaken").textContent = user.quizzesTaken || 0;
+            document.getElementById("pointsEarned").textContent = user.points || 0;
+            document.getElementById("badgesEarned").textContent = user.badges || 0;
+        });
+
+        function logout() {
+            localStorage.removeItem("loggedInUser");
+            alert("You have been logged out.");
+            window.location.href = "/";
+        }
+    </script>
+
+    <%- include('footer.ejs') %>

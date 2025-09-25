@@ -1,0 +1,55 @@
+<%- include('header.ejs') %>
+
+    <section class="intro-section">
+        <h2>Free Classes for Students 🚀</h2>
+        <p>Watch interactive lessons, practice questions, and take quizzes. Learn at your own pace after creating your
+            profile.</p>
+    </section>
+
+    <section class="features-section">
+        <h3>Explore Our Learning Features</h3>
+        <div class="features-grid">
+            <div class="feature-card1" onclick="handleFeatureClick('Mathematics')">
+                <span class="feature-icon">📘</span>
+                <h4>Mathematics</h4>
+                <p>Concept videos & practice problems</p>
+            </div>
+            <div class="feature-card2" onclick="handleFeatureClick('Science')">
+                <span class="feature-icon">🔬</span>
+                <h4>Science</h4>
+                <p>Experiments, animations & quizzes</p>
+            </div>
+            <div class="feature-card3" onclick="handleFeatureClick('Computer Science')">
+                <span class="feature-icon">💻</span>
+                <h4>Computer Science</h4>
+                <p>Learn coding with interactive examples</p>
+            </div>
+            <div class="feature-card4" onclick="handleFeatureClick('Exams & Quizzes')">
+                <span class="feature-icon">📝</span>
+                <h4>Exams & Quizzes</h4>
+                <p>Test yourself and track your progress</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="promo-section">
+        <img src="/images/img.jpg" alt="Promo Banner" class="promo-img">
+    </section>
+
+    <script>
+        function handleFeatureClick(featureName) {
+            const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!loggedInUser) {
+                alert(`Please login or sign up to access ${featureName}`);
+                window.location.href = "/login";
+            } else {
+                alert(`Welcome to ${featureName}! (Feature content coming soon)`);
+            }
+        }
+    </script>
+   
+    
+>
+
+
+    <%- include('footer.ejs') %>
