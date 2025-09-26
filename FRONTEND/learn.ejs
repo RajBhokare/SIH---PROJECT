@@ -1,3 +1,91 @@
 <%- include('header.ejs') %>
 
+
+    <section class="learn-section container">
+        <h2>📚 Start Learning</h2>
+        <p>Select your class and subject to begin your learning journey.</p>
+
+        <!-- Class Selection -->
+        <div class="class-selector">
+            <label for="classSelect">Choose Your Class:</label>
+            <select id="classSelect">
+                <option value="6" selected>Class 6</option>
+                <option value="7">Class 7</option>
+                <option value="8">Class 8</option>
+                <option value="9">Class 9</option>
+                <option value="10">Class 10</option>
+            </select>
+        </div>
+
+        <!-- Subject Grid -->
+        <div class="subjects-grid" id="subjectsGrid">
+            <!-- JS will populate subjects dynamically -->
+        </div>
+
+        <!-- Topics Section -->
+        <div class="topics-section" id="topicsSection" style="display:none;">
+            <h3 id="selectedSubjectTitle"></h3>
+            <ul id="topicsList"></ul>
+            <button class="btn-back" onclick="goBack()">⬅ Back to Subjects</button>
+        </div>
+    </section>
+
+    <script src="/js/learn.js"></script>
+    <script>
+        const subjectsData = {
+                "6": [
+                    { name: "Mathematics", icon: "📘", topics: ["Fractions", "Decimals", "Geometry", "Mensuration"] },
+                    { name: "Science", icon: "🔬", topics: ["Living Things", "Electricity", "Motion", "Water & Air"] },
+                    { name: "English", icon: "📖", topics: ["Grammar", "Comprehension", "Writing Skills"] },
+                    { name: "Social Studies", icon: "🌍", topics: ["History: Early Humans", "Geography: Our Earth", "Civics: Rights & Duties"] }
+                ]
+            };
+
+            const subjectsGrid = document.getElementById("subjectsGrid");
+            const topicsSection = document.getElementById("topicsSection");
+            const topicsList = document.getElementById("topicsList");
+            const selectedSubjectTitle = document.getElementById("selectedSubjectTitle");
+            const classSelect = document.getElementById("classSelect");
+
+            function renderSubjects(classId) {
+                subjectsGrid.innerHTML = ""; // clear previous
+                if (!subjectsData[classId]) {
+                    subjectsGrid.innerHTML = `<p>No subjects available for Class ${classId} yet.</p>`;
+                    return;
+                }
+                subjectsData[classId].forEach(subject => {
+                    const card = document.createElement("div");
+                    card.className = "subject-card";
+                    card.innerHTML = `
+      <span class="subject-icon">${subject.icon}</span>
+      <h4>${subject.name}</h4>
+    `;
+                    card.addEventListener("click", () => showTopics(subject));
+                    subjectsGrid.appendChild(card);
+                });
+            }
+
+            function showTopics(subject) {
+                selectedSubjectTitle.textContent = subject.name + " - Topics";
+                topicsList.innerHTML = subject.topics.map(t => `<li>${t}</li>`).join("");
+                subjectsGrid.style.display = "none";
+                topicsSection.style.display = "block";
+            }
+
+            function goBack() {
+                topicsSection.style.display = "none";
+                subjectsGrid.style.display = "grid";
+            }
+
+            // Event Listener
+            classSelect.addEventListener("change", () => {
+                renderSubjects(classSelect.value);
+            });
+
+            // Initial Render
+            renderSubjects("6");
+
+    </script>
+
     <%- include('footer.ejs') %>
+
