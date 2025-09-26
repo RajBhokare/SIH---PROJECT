@@ -1,55 +1,90 @@
 <%- include('header.ejs') %>
 
+    <!-- Intro Section -->
     <section class="intro-section">
         <h2>Free Classes for Students 🚀</h2>
         <p>Watch interactive lessons, practice questions, and take quizzes. Learn at your own pace after creating your
             profile.</p>
     </section>
 
-    <section class="features-section">
-        <h3>Explore Our Learning Features</h3>
-        <div class="features-grid">
-            <div class="feature-card1" onclick="handleFeatureClick('Mathematics')">
-                <span class="feature-icon">📘</span>
-                <h4>Mathematics</h4>
-                <p>Concept videos & practice problems</p>
+    <!-- Popular Courses Section -->
+    <!-- Popular Courses Section -->
+<!-- Popular Courses Section -->
+<section class="popular-courses-section">
+    <h3>Popular Courses</h3>
+    <div class="courses-grid">
+        <div class="course-card" onclick="handleFeatureClick('Mathematics')" data-course="Mathematics">
+            <span class="course-icon">📘</span>
+            <h4>Mathematics</h4>
+            <p>Concept videos, problem solving & practice questions.</p>
+        </div>
+        <div class="course-card" onclick="handleFeatureClick('Science')" data-course="Science">
+            <span class="course-icon">🔬</span>
+            <h4>Science</h4>
+            <p>Experiments, simulations, and interactive quizzes.</p>
+        </div>
+        <div class="course-card" onclick="handleFeatureClick('Chemistry')" data-course="Chemistry">
+            <span class="course-icon">⚗️</span>
+            <h4>Chemistry</h4>
+            <p>Experiments, chemical reactions, and theory.</p>
+        </div>
+        <div class="course-card" onclick="handleFeatureClick('Computer Science')" data-course="Computer Science">
+            <span class="course-icon">💻</span>
+            <h4>Computer Science</h4>
+            <p>Learn coding, algorithms, and programming projects.</p>
+        </div>
+        <div class="course-card" onclick="handleFeatureClick('English')" data-course="English">
+            <span class="course-icon">📖</span>
+            <h4>English</h4>
+            <p>Grammar, reading, writing, and interactive exercises.</p>
+        </div>
+        <div class="course-card" onclick="handleFeatureClick('Exams & Quizzes')" data-course="Exams & Quizzes">
+            <span class="course-icon">📝</span>
+            <h4>Exams & Quizzes</h4>
+            <p>Test yourself and track progress across subjects.</p>
+        </div>
+    </div>
+</section>
+
+
+
+    <!-- Goals Section -->
+    <section class="goals-section">
+        <h3>Goals & Features of EduPadhai</h3>
+        <div class="goals-grid">
+            <div class="goal-card">
+                <span class="goal-icon">🎯</span>
+                <h4>Personalized Learning</h4>
+                <p>Learn at your own pace with customized lessons.</p>
             </div>
-            <div class="feature-card2" onclick="handleFeatureClick('Science')">
-                <span class="feature-icon">🔬</span>
-                <h4>Science</h4>
-                <p>Experiments, animations & quizzes</p>
+            <div class="goal-card">
+                <span class="goal-icon">🧪</span>
+                <h4>Interactive Experiments</h4>
+                <p>Hands-on science experiments and visual simulations.</p>
             </div>
-            <div class="feature-card3" onclick="handleFeatureClick('Computer Science')">
-                <span class="feature-icon">💻</span>
-                <h4>Computer Science</h4>
-                <p>Learn coding with interactive examples</p>
+            <div class="goal-card">
+                <span class="goal-icon">💻</span>
+                <h4>Coding Skills</h4>
+                <p>Step-by-step programming tutorials with examples.</p>
             </div>
-            <div class="feature-card4" onclick="handleFeatureClick('Exams & Quizzes')">
-                <span class="feature-icon">📝</span>
-                <h4>Exams & Quizzes</h4>
-                <p>Test yourself and track your progress</p>
+            <div class="goal-card">
+                <span class="goal-icon">📊</span>
+                <h4>Assessments & Progress</h4>
+                <p>Quizzes and tests to track learning outcomes.</p>
             </div>
         </div>
     </section>
 
-    <section class="promo-section">
-        <img src="/images/img.jpg" alt="Promo Banner" class="promo-img">
-    </section>
-
     <script>
-        function handleFeatureClick(featureName) {
+        function handleFeatureClick(courseName) {
             const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
             if (!loggedInUser) {
-                alert(`Please login or sign up to access ${featureName}`);
+                alert(`Please login or sign up to access ${courseName}`);
                 window.location.href = "/login";
             } else {
-                alert(`Welcome to ${featureName}! (Feature content coming soon)`);
+                alert(`Welcome to ${courseName}! (Feature content coming soon)`);
             }
         }
     </script>
-   
-    
-
-
 
     <%- include('footer.ejs') %>

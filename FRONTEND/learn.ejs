@@ -1,111 +1,156 @@
 <%- include('header.ejs') %>
 
-    <section class="learn-section container">
-        <h2>📚 Start Learning</h2>
-        <p>Select your class and subject to begin your learning journey.</p>
+    <!-- Intro / Welcome Section -->
+   - Intro / Welcome Section -->
+<section class="intro-section text-center py-5 rounded shadow-sm mx-3">
+    <div class="container">
+        <h2 class="fw-bold">Start Learning 🚀</h2>
+        <p class="lead">Select your class, subject, and chapter to begin learning.</p>
+    </div>
+</section>
 
-        <div class="class-selector">
-            <label for="classSelect">Choose Your Class:</label>
-            <select id="classSelect">
-                <option value="6" selected>Class 6</option>
-                <option value="7">Class 7</option>
-                <option value="8">Class 8</option>
-                <option value="9">Class 9</option>
-                <option value="10">Class 10</option>
-            </select>
-        </div>
+<div class="container my-5">
 
-        <div class="subjects-grid" id="subjectsGrid"></div>
-
-        <div class="topics-section" id="topicsSection">
-            <h3 id="selectedSubjectTitle"></h3>
-            <ul id="topicsList"></ul>
-
-            <div class="activities-section" id="activitiesSection">
-                <h4 id="activityTitle"></h4>
-                <div class="activities-grid" id="activitiesGrid"></div>
-                <button class="btn-back" onclick="backToTopics()">⬅ Back to Topics</button>
-            </div>
-
-            <button class="btn-back" onclick="goBack()">⬅ Back to Subjects</button>
+    <!-- Step 1: Class Selection -->
+    <section id="classSection">
+        <h3 class="mb-4">Select Your Class</h3>
+        <div class="row g-4">
+            <% const classes=["6th", "7th" , "8th" , "9th" , "10th" ]; %>
+                <% classes.forEach(cls=> { %>
+                    <div class="col-md-4 col-lg-3">
+                        <div class="card h-100 text-center shadow-sm cursor-pointer"
+                            onclick="selectClass('<%= cls %>')">
+                            <div class="card-body">
+                                <div class="display-4">🏫</div>
+                                <h5 class="card-title mt-3">
+                                    <%= cls %> Class
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                    <% }) %>
         </div>
     </section>
 
-    <script>
-        const classSelect = document.getElementById("classSelect");
-        const subjectsGrid = document.getElementById("subjectsGrid");
-        const topicsSection = document.getElementById("topicsSection");
-        const selectedSubjectTitle = document.getElementById("selectedSubjectTitle");
-        const topicsList = document.getElementById("topicsList");
-        const activitiesSection = document.getElementById("activitiesSection");
-        const activitiesGrid = document.getElementById("activitiesGrid");
-        const activityTitle = document.getElementById("activityTitle");
+    <!-- Step 2: Subject Selection -->
+    <section id="subjectSection" style="display:none;">
+        <button class="btn btn-outline-primary mb-4" onclick="goBackToClass()">⬅ Back to Class</button>
+        <h3 class="mb-4">Select Your Subject</h3>
+        <div class="row g-4">
+            <% const subjects=["Mathematics", "Science" , "Physics" , "Chemistry" , "Computer Science" , "English"
+                , "Exams & Quizzes" ]; %>
+                <% subjects.forEach(sub=> { %>
+                    <div class="col-md-4 col-lg-3">
+                        <div class="card h-100 text-center shadow-sm cursor-pointer"
+                            onclick="selectSubject('<%= sub %>')">
+                            <div class="card-body">
+                                <div class="display-4">📘</div>
+                                <h5 class="card-title mt-3">
+                                    <%= sub %>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                    <% }) %>
+        </div>
+    </section>
 
-        const classActivitiesData = {
-            "6": {
-                "Mathematics": { "Fractions": ["Interactive Quiz", "Puzzle Game", "Video Lesson"], "Decimals": ["Video Lesson", "Practice Exercise"], "Geometry": ["Drag & Drop Game", "Quiz"], "Mensuration": ["Interactive Quiz", "Video Lesson"] },
-                "Science": { "Living Things": ["Video Lesson", "Mini Quiz"], "Electricity": ["Experiment Simulation", "Quiz"], "Motion": ["Interactive Game", "Practice Exercise"], "Water & Air": ["Video Lesson", "Quiz"] },
-                "English": { "Grammar": ["Interactive Exercise", "Quiz"], "Comprehension": ["Reading Game", "Quiz"], "Writing Skills": ["Writing Exercise", "Video Lesson"] },
-                "Social Studies": { "History: Early Humans": ["Timeline Game", "Quiz"], "Geography: Our Earth": ["Map Activity", "Quiz"], "Civics: Rights & Duties": ["Scenario Game", "Quiz"] }
-            }
-        };
+    <!-- Step 3: Chapter Selection -->
+    <section id="chapterSection" style="display:none;">
+        <button class="btn btn-outline-primary mb-4" onclick="goBackToSubject()">⬅ Back to Subject</button>
+        <h3 class="mb-4">Select Chapter</h3>
+        <div class="row g-4">
+            <% const chapters=["Chapter 1", "Chapter 2" , "Chapter 3" , "Chapter 4" ]; %>
+                <% chapters.forEach(ch=> { %>
+                    <div class="col-md-4 col-lg-3">
+                        <div class="card h-100 text-center shadow-sm cursor-pointer"
+                            onclick="selectChapter('<%= ch %>')">
+                            <div class="card-body">
+                                <div class="display-4">📚</div>
+                                <h5 class="card-title mt-3">
+                                    <%= ch %>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                    <% }) %>
+        </div>
+    </section>
 
-        // Populate subjects
-        function populateSubjects() {
-            const selectedClass = classSelect.value;
-            const subjects = Object.keys(classActivitiesData[selectedClass] || {});
-            subjectsGrid.innerHTML = subjects.map(sub => {
-                return `<div class="subject-card" data-subject="${sub}" onclick="showTopics('${sub}')">
-            <span class="subject-icon">📘</span>
-            <h4>${sub}</h4>
-            <p>Click to explore topics</p>
-        </div>`;
-            }).join("");
-            subjectsGrid.style.display = "grid";
-            topicsSection.style.display = "none";
-        }
+    <!-- Step 4: Activity Selection -->
+    <section id="activitySection" style="display:none;">
+        <button class="btn btn-outline-primary mb-4" onclick="goBackToChapter()">⬅ Back to Chapter</button>
+        <h3 class="mb-4">Choose Activity</h3>
+        <div class="row g-4">
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100 text-center shadow-sm cursor-pointer" onclick="alert('Quiz selected!')">
+                    <div class="card-body">
+                        <div class="display-4">📝</div>
+                        <h5 class="card-title mt-3">Quiz</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100 text-center shadow-sm cursor-pointer" onclick="alert('Notes selected!')">
+                    <div class="card-body">
+                        <div class="display-4">📖</div>
+                        <h5 class="card-title mt-3">Notes</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100 text-center shadow-sm cursor-pointer" onclick="alert('Game selected!')">
+                    <div class="card-body">
+                        <div class="display-4">🎮</div>
+                        <h5 class="card-title mt-3">Game</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        // Show topics
-        function showTopics(subjectName) {
-            const selectedClass = classSelect.value;
-            const topics = Object.keys(classActivitiesData[selectedClass][subjectName] || {});
-            selectedSubjectTitle.textContent = subjectName + " - Topics";
-            topicsList.innerHTML = topics.map(t => {
-                return `<li onclick="showActivities('${subjectName}','${t}')">${t}</li>`;
-            }).join("");
-            subjectsGrid.style.display = "none";
-            topicsSection.style.display = "block";
-            activitiesSection.style.display = "none";
-        }
+</div>
 
-        // Show activities
-        function showActivities(subjectName, topicName) {
-            const selectedClass = classSelect.value;
-            const activities = classActivitiesData[selectedClass][subjectName][topicName] || [];
-            activityTitle.textContent = `${topicName} Activities`;
+<script>
+    let selectedClass = null;
+    let selectedSubject = null;
+    let selectedChapter = null;
 
-            activitiesGrid.innerHTML = activities.map(a => {
-                let type = "Quiz";
-                if (a.toLowerCase().includes("video")) type = "Video Lesson";
-                else if (a.toLowerCase().includes("game")) type = "Interactive Game";
+    function selectClass(cls) {
+        selectedClass = cls;
+        document.getElementById('classSection').style.display = 'none';
+        document.getElementById('subjectSection').style.display = 'block';
+    }
 
-                const url = `/activity?cls=${selectedClass}&subject=${encodeURIComponent(subjectName)}&topic=${encodeURIComponent(topicName)}&activity=${encodeURIComponent(a)}&type=${encodeURIComponent(type)}`;
+    function goBackToClass() {
+        document.getElementById('subjectSection').style.display = 'none';
+        document.getElementById('classSection').style.display = 'block';
+    }
 
-                return `<div class="activity-card" onclick="window.location.href='${url}'">
-            <h5>${a}</h5>
-            <p>Click to start!</p>
-        </div>`;
-            }).join("");
+    function selectSubject(sub) {
+        selectedSubject = sub;
+        document.getElementById('subjectSection').style.display = 'none';
+        document.getElementById('chapterSection').style.display = 'block';
+    }
 
-            activitiesSection.style.display = "block";
-            topicsList.style.display = "none";
-        }
+    function goBackToSubject() {
+        document.getElementById('chapterSection').style.display = 'none';
+        document.getElementById('subjectSection').style.display = 'block';
+    }
 
-        function backToTopics() { activitiesSection.style.display = "none"; topicsList.style.display = "block"; }
-        function goBack() { topicsSection.style.display = "none"; subjectsGrid.style.display = "grid"; }
+    function selectChapter(ch) {
+        selectedChapter = ch;
+        document.getElementById('chapterSection').style.display = 'none';
+        document.getElementById('activitySection').style.display = 'block';
+    }
 
-        populateSubjects();
-        classSelect.addEventListener("change", populateSubjects);
-    </script>
+    function goBackToChapter() {
+        document.getElementById('activitySection').style.display = 'none';
+        document.getElementById('chapterSection').style.display = 'block';
+    }
+</script>
 
-    <%- include('footer.ejs') %>
+<!-- Include Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<%- include('footer.ejs') %>
