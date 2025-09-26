@@ -1,0 +1,41 @@
+<%- include('header.ejs') %>
+
+    <section class="activity-page container">
+        <h2>📖 <%= topic %> - <%= activity %>
+        </h2>
+        <p>Class <%= cls %> | Subject: <%= subject %>
+        </p>
+
+        <div class="activity-content">
+            <% if(activityType==="Quiz" ) { %>
+                <div class="quiz-section">
+                    <h3>Quiz: <%= topic %>
+                    </h3>
+                    <ul class="quiz-list">
+                        <li>Question 1: Example question here</li>
+                        <li>Question 2: Example question here</li>
+                        <li>Question 3: Example question here</li>
+                    </ul>
+                    <button class="start-quiz-btn btn-back">Start Quiz</button>
+                </div>
+                <% } else if(activityType==="Video Lesson" ) { %>
+                    <div class="video-lesson">
+                        <video controls width="100%" class="activity-video">
+                            <source src="/videos/<%= cls %>/<%= subject %>/<%= topic %>.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <% } else if(activityType==="Interactive Game" ) { %>
+                        <div class="game-section">
+                            <p>Interactive game placeholder for <%= topic %>!</p>
+                            <div class="game-placeholder">🎮 Game will appear here</div>
+                        </div>
+                        <% } else { %>
+                            <p>No content available for this activity yet.</p>
+                            <% } %>
+        </div>
+
+        <button class="btn-back" onclick="window.history.back()">⬅ Back</button>
+    </section>
+
+    <%- include('footer.ejs') %>
