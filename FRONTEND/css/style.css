@@ -17,6 +17,43 @@ body {
   border-bottom: 2px solid rgba(229, 231, 235, 0.5);
 }
 
+/* Carousel Item Hover Sync */
+.feature-item {
+    cursor: default;
+    border-color: #e2e8f0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-item:hover {
+    transform: translateY(-8px) rotate(1deg); /* Slight tilt for playfulness */
+    border-color: #1cb0f6;
+    box-shadow: 0 12px 0 #1cb0f6; /* Syncs with your btn-blue shadow */
+}
+
+.feature-item h4 {
+    color: #1e293b;
+    transition: color 0.2s;
+}
+
+.feature-item:hover h4 {
+    color: #1cb0f6;
+}
+
+/* Specific highlight for rural features */
+.feature-item:nth-child(even):hover {
+    border-color: #58cc02;
+    box-shadow: 0 12px 0 #58cc02; /* Syncs with your btn-green shadow */
+}
+
+.feature-item:nth-child(even):hover h4 {
+    color: #58cc02;
+}
+
+/* Animation for the carousel track */
+#featureCarousel {
+    will-change: transform;
+}
+
 /* Bouncing Icons */
 @keyframes gentleBounce {
   0%, 100% { transform: translateY(0); }
@@ -86,16 +123,31 @@ body {
 }
 
 /* Chunky Cards */
+/* Update these inside your FRONTEND/css/style.css */
+
 .neo-card {
   background: white;
   border-radius: 24px;
   border: 2px solid #e5e5e5;
-  box-shadow: 0 6px 0 #e5e5e5;
-  transition: all 0.2s ease;
+  box-shadow: 0 8px 0 #e5e5e5; /* Chunky bottom shadow */
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
 .neo-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 0 #e5e5e5;
+  box-shadow: 0 12px 0 #e5e5e5;
+  border-color: #1cb0f6; /* Highlights on hover */
+}
+
+/* Button "Push-Down" Effect */
+.btn-chunky:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 transparent !important;
+}
+
+/* Specific Subject Colors for Learn Page */
+.group:hover span.font-bold {
+  color: #1cb0f6;
 }
 
 /* Progress Bar */

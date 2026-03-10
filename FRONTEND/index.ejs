@@ -51,6 +51,70 @@
                     <h3 class="text-xl font-bold text-yellow-600">English</h3>
                 </a>
             </div>
+            <section class="max-w-5xl mx-auto mt-16 px-4">
+                <h2 class="text-3xl font-black text-gray-800 mb-8 text-center">Supercharged Features ⚡</h2>
+            
+                <div class="relative overflow-hidden py-4">
+                    <div class="flex transition-transform duration-500 ease-in-out" id="featureCarousel">
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🗣️</div>
+                                <h4 class="text-xl font-extrabold mb-2">Read Aloud</h4>
+                                <p class="text-gray-500 font-bold text-sm">Text-to-speech for better accessibility in rural areas.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🌐</div>
+                                <h4 class="text-xl font-extrabold mb-2">Regional Support</h4>
+                                <p class="text-gray-500 font-bold text-sm">Switch between Hindi, Marathi, and English instantly.</p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">📉</div>
+                                <h4 class="text-xl font-extrabold mb-2">Low Data Mode</h4>
+                                <p class="text-gray-500 font-bold text-sm">Optimized for 2G/3G networks with light assets.</p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🏅</div>
+                                <h4 class="text-xl font-extrabold mb-2">Smart Badges</h4>
+                                <p class="text-gray-500 font-bold text-sm">Earn unique badges for daily learning streaks.</p>
+                            </div>
+                        </div>
+                    </div>
+            
+                    <button onclick="moveCarousel(-1)"
+                        class="absolute left-0 top-1/2 -translate-y-1/2 btn-chunky btn-white p-2 rounded-full">⬅</button>
+                    <button onclick="moveCarousel(1)"
+                        class="absolute right-0 top-1/2 -translate-y-1/2 btn-chunky btn-white p-2 rounded-full">➡</button>
+                </div>
+            </section>
+            
+            <script>
+                let currentSlide = 0;
+                const carousel = document.getElementById('featureCarousel');
+                const totalSlides = document.querySelectorAll('.feature-item').length;
+
+                function moveCarousel(direction) {
+                    const visibleSlides = window.innerWidth >= 768 ? 3 : 1;
+                    const maxSlide = totalSlides - visibleSlides;
+
+                    currentSlide += direction;
+
+                    if (currentSlide < 0) currentSlide = maxSlide;
+                    if (currentSlide > maxSlide) currentSlide = 0;
+
+                    const offset = currentSlide * (100 / visibleSlides);
+                    carousel.style.transform = `translateX(-${offset}%)`;
+                }
+
+                // Auto-slide every 5 seconds
+                setInterval(() => moveCarousel(1), 5000);
+            </script>
         </section>
     </main>
 
