@@ -47,7 +47,7 @@ app.get('/activity/:id', (req, res) => {
         });
     });
 });
-
+require('dotenv').config();
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
