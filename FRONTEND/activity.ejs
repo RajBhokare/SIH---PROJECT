@@ -1,163 +1,153 @@
 <%- include('header.ejs') %>
 
-    <section class="container my-5 text-center">
-        <h2 class="fw-bold text-primary">
-            <%= topic %>
-        </h2>
-        <p class="text-muted">Class <%= cls %> | Subject: <%= subject %> | Activity: <span class="text-capitalize">
-                        <%= activityType %>
-                    </span></p>
-
-        <div class="card shadow-sm border-0 p-4 mt-4" style="max-width: 800px; margin: 0 auto; text-align: left;">
-
-            <% if(activityType==="notes" ) { %>
-                <div class="notes-section">
-                    <div class="fs-5" style="line-height: 1.8;"><%- content.body %></div>
-                    <button class="btn btn-success mt-4 w-100 fs-5 fw-bold" onclick="completeActivity(10, 'notes')">Mark
-                        as Read & Earn 10 XP</button>
-                </div>
-
-                <% } else if(activityType==="quiz" ) { %>
-                    <div class="quiz-section" id="quizContainer">
-                    </div>
-
-                    <% } else if(activityType==="game" ) { %>
-                        <div class="game-section text-center">
-                            <div class="display-1 mb-3">🎮</div>
-                            <h4>
-                                <%= content.gameName %>
-                            </h4>
-                            <p class="fs-5 text-muted">
-                                <%= content.instructions %>
-                            </p>
-
-                            <div class="p-5 bg-light border rounded mt-3">
-                                <button class="btn btn-warning btn-lg fw-bold" id="playGameBtn"
-                                    onclick="playGame()">Start Challenge</button>
-                            </div>
-                        </div>
-                        <% } %>
-
-        </div>
+    <main class="max-w-3xl mx-auto mt-8 px-4 animate-in fade-in zoom-in-95 duration-300 mb-20">
+        <button onclick="window.location.href='/learn'"
+            class="mb-6 font-bold text-gray-500 hover:text-gray-800 flex items-center gap-2">
+            ✖ Exit Activity
+        </button>
 
         <div id="serverData" data-content="<%= JSON.stringify(content || {}) %>" data-type="<%= activityType %>"
-            style="display: none;">
-        </div>
-        
-        <script>
-            // 2. Read the data safely from the HTML
-            const serverDiv = document.getElementById('serverData');
-            const activityData = JSON.parse(serverDiv.getAttribute('data-content'));
-            const activityType = serverDiv.getAttribute('data-type');
+            style="display: none;"></div>
 
-            // Gamification Logic to update MySQL
-            async function completeActivity(points, type) {
-                const user = JSON.parse(localStorage.getItem("loggedInUser"));
-                if (!user) {
-                    alert("Please login to save your XP!");
-                    return;
-                }
+        <% if(activityType==="notes" ) { %>
+            <div class="neo-card p-8 md:p-12 space-y-8 bg-white">
+                <div class="flex items-center gap-4 border-b-2 border-gray-100 pb-6">
+                    <span class="text-4xl">📖</span>
+                    <h1 class="text-3xl font-black text-gray-800">
+                        <%= topic %>
+                    </h1>
+                </div>
 
-                try {
-                    const response = await fetch('/api/content/progress/update', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: user.id, pointsEarned: points, type: type })
-                    });
+                <div class="notes-section prose prose-lg text-gray-600 font-medium space-y-4">
+                    <%- content.body %>
+                </div>
 
-                    if (response.ok) {
-                        alert(`🎉 Congratulations! You earned ${points} XP!`);
-                        window.location.href = '/dashboard';
-                    }
-                } catch (error) {
-                    console.error("Error saving progress:", error);
-                }
-            }
+                <div class="pt-8 border-t-2 border-gray-100 flex justify-center">
+                    <button onclick="completeActivity(10, 'notes')"
+                        class="btn-chunky btn-green px-8 py-4 text-xl w-full md:w-auto text-white">
+                        Mark as Read & Earn 10 XP
+                    </button>
+                </div>
+            </div>
+            <% } else if(activityType==="quiz" ) { %>
+                <div id="quizApp" class="neo-card p-8 md:p-12 bg-white flex flex-col min-h-[400px]">
+                </div>
+                <% } else if(activityType==="game" ) { %>
+                    <div class="neo-card p-12 text-center space-y-6 bg-white">
+                        <div class="text-6xl animate-bounce">🎮</div>
+                        <h2 class="text-3xl font-black text-gray-800">
+                            <%= content.gameName || 'Game Loading...' %>
+                        </h2>
+                        <p class="text-gray-500 font-bold">
+                            <%= content.instructions || 'Interactive games coming soon!' %>
+                        </p>
+                        <button onclick="completeActivity(30, 'game')"
+                            class="btn-chunky btn-yellow px-8 py-4 text-white text-lg mt-4">
+                            Claim 30 Free XP Anyway
+                        </button>
+                    </div>
+                    <% } %>
+    </main>
 
-            // Dynamic Multi-Question Quiz Logic
-            let currentQuestionIndex = 0;
-            let score = 0;
+    <script>
+        const serverDiv = document.getElementById('serverData');
+        const activityData = JSON.parse(serverDiv.getAttribute('data-content'));
+        const activityType = serverDiv.getAttribute('data-type');
 
-            function renderQuiz() {
-                if (activityType !== 'quiz') return;
+        async function completeActivity(points, type) {
+            const user = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!user) { alert("Please login to save your XP!"); return; }
 
-                const container = document.getElementById('quizContainer');
-                const questions = activityData.questions;
-
-                // Check if quiz is finished
-                if (currentQuestionIndex >= questions.length) {
-                    container.innerHTML = `
-                            <div class="text-center">
-                                <h3 class="text-success mb-3">Quiz Complete! 🏆</h3>
-                                <p class="fs-4">You got ${score} out of ${questions.length} correct.</p>
-                                <button class="btn btn-success btn-lg mt-3" onclick="completeActivity(${score * 20}, 'quiz')">Claim ${score * 20} XP & Finish</button>
-                            </div>
-                        `;
-                    return;
-                }
-
-                const q = questions[currentQuestionIndex];
-                let optionsHtml = '';
-
-                q.options.forEach(opt => {
-                    optionsHtml += `<button class="btn btn-outline-primary fs-5 mb-2 w-100" onclick="checkAnswer(this, \`${opt}\`, \`${q.answer}\`)">${opt}</button>`;
+            try {
+                const res = await fetch('/api/content/progress/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, pointsEarned: points, type: type })
                 });
+                if (res.ok) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // QUIZ LOGIC
+        if (activityType === 'quiz') {
+            let currentQ = 0;
+            let score = 0;
+            const container = document.getElementById('quizApp');
+            const questions = activityData.questions;
+
+            window.renderQuiz = function () {
+                if (currentQ >= questions.length) {
+                    const totalXP = score * 20;
+                    container.innerHTML = `
+                    <div class="text-center space-y-6 animate-in zoom-in">
+                        <div class="text-7xl mb-4">🌟</div>
+                        <h2 class="text-4xl font-black text-gray-800">Quiz Complete!</h2>
+                        <p class="text-xl font-bold text-gray-500">You scored ${score} out of ${questions.length}</p>
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 max-w-sm mx-auto my-8">
+                            <p class="text-yellow-600 font-bold uppercase tracking-wider text-sm mb-1">XP Earned</p>
+                            <p class="text-4xl font-black text-yellow-500">+${totalXP} XP</p>
+                        </div>
+                        <button onclick="completeActivity(${totalXP}, 'quiz')" class="btn-chunky btn-green px-10 py-4 text-xl text-white">Claim XP & Return</button>
+                    </div>`;
+                    return;
+                }
+
+                const q = questions[currentQ];
+                const progress = (currentQ / questions.length) * 100;
+
+                let optionsHtml = q.options.map(opt => `
+                <button onclick="checkAnswer(this, \`${opt}\`, \`${q.answer}\`)" class="btn-chunky btn-white py-6 text-lg border-2 w-full text-left px-6 text-gray-700">
+                    ${opt}
+                </button>
+            `).join('');
 
                 container.innerHTML = `
-                        <h5 class="text-muted">Question ${currentQuestionIndex + 1} of ${questions.length}</h5>
-                        <h4 class="mb-4 mt-2">${q.q}</h4>
-                        <div class="d-grid gap-2">
-                            ${optionsHtml}
-                        </div>
-                        <div id="quizFeedback" class="mt-3 fw-bold fs-4 text-center" style="height: 40px;"></div>
-                        <button id="nextBtn" class="btn btn-dark w-100 mt-3" style="display:none;" onclick="nextQuestion()">Next Question ➡</button>
-                    `;
-            }
+                <div class="mb-8 space-y-4">
+                    <div class="text-gray-500 font-bold">Question ${currentQ + 1} of ${questions.length}</div>
+                    <div class="progress-bg h-4 w-full"><div class="progress-fill" style="width: ${progress}%; background-color: #1cb0f6;"></div></div>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-black text-gray-800 mb-8 text-center">${q.q}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="optionsContainer">${optionsHtml}</div>
+                <div id="quizFooter" class="h-24 flex items-center justify-center border-t-2 border-gray-100 pt-6">
+                    <div class="text-gray-400 font-bold">Select an answer to continue</div>
+                </div>
+            `;
+            };
 
-            function checkAnswer(btn, selected, correct) {
-                const feedback = document.getElementById('quizFeedback');
-                const nextBtn = document.getElementById('nextBtn');
-                const buttons = btn.parentElement.querySelectorAll('button');
+            window.checkAnswer = function (btn, selected, correct) {
+                const btns = document.getElementById('optionsContainer').querySelectorAll('button');
+                btns.forEach(b => b.disabled = true); // lock answers
 
-                // Disable buttons after answering
-                buttons.forEach(b => b.disabled = true);
+                const footer = document.getElementById('quizFooter');
 
                 if (selected === correct) {
-                    btn.classList.replace('btn-outline-primary', 'btn-success');
-                    feedback.innerHTML = "✅ Correct!";
-                    feedback.className = "mt-3 fw-bold fs-4 text-center text-success";
+                    btn.className = "btn-chunky btn-green py-6 text-lg border-2 w-full text-left px-6 text-white";
                     score++;
+                    footer.innerHTML = `
+                    <div class="w-full flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white text-2xl">🎉</div>
+                            <h3 class="font-black text-xl text-green-500">Awesome!</h3>
+                        </div>
+                        <button onclick="currentQ++; renderQuiz()" class="btn-chunky btn-blue px-8 py-3 text-lg text-white">Continue</button>
+                    </div>`;
                 } else {
-                    btn.classList.replace('btn-outline-primary', 'btn-danger');
-                    feedback.innerHTML = `❌ Incorrect. The answer was: ${correct}`;
-                    feedback.className = "mt-3 fw-bold fs-4 text-center text-danger";
+                    btn.className = "btn-chunky btn-red py-6 text-lg border-2 w-full text-left px-6 text-white";
+                    footer.innerHTML = `
+                    <div class="w-full flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white text-2xl">😅</div>
+                            <h3 class="font-black text-xl text-red-500">Correct: ${correct}</h3>
+                        </div>
+                        <button onclick="currentQ++; renderQuiz()" class="btn-chunky btn-blue px-8 py-3 text-lg text-white">Continue</button>
+                    </div>`;
                 }
+            };
 
-                nextBtn.style.display = "block";
-            }
+            renderQuiz();
+        }
+    </script>
 
-            function nextQuestion() {
-                currentQuestionIndex++;
-                renderQuiz();
-            }
-
-            // Simple Game Logic Placeholder
-            function playGame() {
-                const btn = document.getElementById('playGameBtn');
-                btn.innerHTML = "Playing... ⏳";
-                btn.disabled = true;
-
-                setTimeout(() => {
-                    btn.innerHTML = "Challenge Completed! 🏆";
-                    btn.classList.replace('btn-warning', 'btn-success');
-                    setTimeout(() => completeActivity(30, 'game'), 1000);
-                }, 2000);
-            }
-
-            // Initialize the quiz if the page loads a quiz activity
-            if (activityType === 'quiz') {
-                renderQuiz();
-            }
-        </script>
-        
-        <%- include('footer.ejs') %>
+    <%- include('footer.ejs') %>

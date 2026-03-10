@@ -1,102 +1,97 @@
 <%- include('header.ejs') %>
 
-    <section class="intro-section text-center py-5 rounded shadow-sm mx-3 mt-4">
-        <h2 id="welcomeText" class="fw-bold">Welcome!</h2>
-        <p id="subtitleText" class="lead">Your learning journey continues here.</p>
-    </section>
+    <main class="max-w-5xl mx-auto mt-8 px-4">
+        <div class="space-y-8 animate-in fade-in duration-300">
 
-    <div class="container my-5">
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h4 class="card-title text-primary">🏆 Your Rank: Scholar</h4>
-                        <p class="mb-1">Next rank in <strong id="pointsNeeded">150</strong> points</p>
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
-                                role="progressbar" style="width: 35%;" aria-valuenow="35" aria-valuemin="0"
-                                aria-valuemax="100" id="xpBar">35%</div>
+            <div class="neo-card p-8 bg-white flex flex-col md:flex-row items-center gap-8">
+                <div
+                    class="w-32 h-32 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-6xl relative">
+                    👨‍🎓
+                    <div
+                        class="absolute -bottom-2 -right-2 bg-yellow-400 text-white text-sm font-black px-3 py-1 rounded-full border-2 border-white shadow-sm">
+                        Lv. 5
+                    </div>
+                </div>
+                <div class="flex-1 text-center md:text-left">
+                    <h1 class="text-4xl font-black text-gray-800 mb-2" id="welcomeText">Welcome back! 👋</h1>
+                    <p class="text-xl text-gray-500 font-bold mb-4">🏆 Your Rank: <span
+                            class="text-blue-500">Scholar</span></p>
+
+                    <div class="space-y-2 max-w-md mx-auto md:mx-0">
+                        <div class="flex justify-between text-sm font-bold text-gray-600">
+                            <span id="pointsEarnedTxt">0 XP</span>
+                            <span><span id="pointsNeeded">200</span> XP to Master</span>
+                        </div>
+                        <div class="progress-bg h-6 w-full shadow-inner border-2 border-gray-100">
+                            <div class="progress-fill" id="xpBar" style="width: 0%; background-color: #ffc800;"></div>
                         </div>
                     </div>
                 </div>
+                <div>
+                    <a href="/learn"
+                        class="btn-chunky btn-blue px-8 py-4 text-lg w-full md:w-auto inline-block text-center">Resume
+                        Journey</a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-blue-50 rounded-2xl text-3xl">📖</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="completedLessons">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Lessons</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-yellow-50 rounded-2xl text-3xl">⚡</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="quizzesTaken">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Quizzes</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-green-50 rounded-2xl text-3xl">⭐</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="pointsEarned">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Total XP</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-purple-50 rounded-2xl text-3xl">🛡️</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="badgesEarned">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Badges</div>
+                </div>
             </div>
         </div>
+    </main>
 
-        <h3 class="mb-3">Your Stats</h3>
-        <div class="row g-4">
-            <div class="col-md-3">
-                <div class="card h-100 text-center shadow-sm p-3">
-                    <h1 class="display-4" id="completedLessons">0</h1>
-                    <p class="text-muted mb-0">Lessons</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100 text-center shadow-sm p-3">
-                    <h1 class="display-4 text-success" id="quizzesTaken">0</h1>
-                    <p class="text-muted mb-0">Quizzes</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100 text-center shadow-sm p-3">
-                    <h1 class="display-4 text-warning" id="pointsEarned">0</h1>
-                    <p class="text-muted mb-0">Points</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100 text-center shadow-sm p-3">
-                    <div class="display-4 mb-2">🏅</div>
-                    <p class="text-muted mb-0"><span id="badgesEarned" class="fw-bold">0</span> Badges</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-center mt-5">
-            <button onclick="logout()" class="btn btn-danger px-4 py-2">Logout</button>
-        </div>
-    </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        // 1. Check if user is logged in locally
-        const localUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (!localUser) {
-            window.location.href = "/login";
-            return;
-        }
-
-        // 2. Fetch fresh synced data from the MySQL Database
-        try {
-            const response = await fetch(`/api/user/${localUser.id}`);
-            if (response.ok) {
-                const freshUserData = await response.json();
-
-                // Update local storage so it stays perfectly synced
-                localStorage.setItem("loggedInUser", JSON.stringify(freshUserData));
-
-                // 3. Render the dynamic data on the screen
-                document.getElementById("welcomeText").textContent = `Welcome, ${freshUserData.name} 👋`;
-                document.getElementById("completedLessons").textContent = freshUserData.lessons || 0;
-                document.getElementById("quizzesTaken").textContent = freshUserData.quizzesTaken || 0;
-
-                // Gamification Math
-                const points = freshUserData.points || 0;
-                document.getElementById("pointsEarned").textContent = points;
-                document.getElementById("badgesEarned").textContent = freshUserData.badges || 0;
-
-                const xpPercentage = Math.min((points / 200) * 100, 100);
-                document.getElementById("xpBar").style.width = `${xpPercentage}%`;
-                document.getElementById("xpBar").textContent = `${points} XP`;
-
-                let pointsNeeded = 200 - points;
-                if (pointsNeeded < 0) pointsNeeded = 0;
-                document.getElementById("pointsNeeded").textContent = pointsNeeded;
-            } else {
-                console.error("Failed to sync user data from server");
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const localUser = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!localUser) {
+                window.location.href = "/login";
+                return;
             }
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-        }
-    });
-</script>
+
+            try {
+                const response = await fetch(`/api/user/${localUser.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem("loggedInUser", JSON.stringify(data)); // Sync
+
+                    document.getElementById("welcomeText").textContent = `Welcome back, ${data.name}! 👋`;
+                    document.getElementById("completedLessons").textContent = data.lessons || 0;
+                    document.getElementById("quizzesTaken").textContent = data.quizzesTaken || 0;
+
+                    const points = data.points || 0;
+                    document.getElementById("pointsEarned").textContent = points;
+                    document.getElementById("pointsEarnedTxt").textContent = `${points} XP`;
+                    document.getElementById("badgesEarned").textContent = data.badges || 0;
+
+                    const xpPercentage = Math.min((points / 500) * 100, 100);
+                    document.getElementById("xpBar").style.width = `${xpPercentage}%`;
+
+                    let needed = 500 - points;
+                    document.getElementById("pointsNeeded").textContent = needed < 0 ? 0 : needed;
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        });
+    </script>
 
     <%- include('footer.ejs') %>

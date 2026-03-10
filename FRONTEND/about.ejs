@@ -1,44 +1,28 @@
 <%- include('header.ejs') %>
-
-    <div class="main-content">
-        <div class="container about-container">
-            <h2>🌱 About Us</h2>
-            <p class="subtitle">EduPadhai is a gamified learning platform for Classes 6–12.</p>
-
-            <p>Welcome to <strong>EduPadhai</strong>! Our platform is specially designed to make learning fun,
-                interactive, and engaging for students in Class 6 and 7. We believe that education should not just be
-                about memorizing facts—it should be an exciting journey of discovery.</p>
-
-            <p>At EduPadhai, we offer:</p>
-            <ul class="about-features">
-                <li>🎓 High-quality video lessons that explain concepts clearly.</li>
-                <li>📝 Interactive quizzes and practice exercises to test your skills.</li>
-                <li>💡 Engaging content across subjects like Mathematics, Science, and Computer Science.</li>
-                <li>⏱️ Learn at your own pace, anytime, anywhere.</li>
-            </ul>
-
-            <p>Our mission is to make education <strong>fun, accessible, and interactive</strong>. We are committed to
-                helping every student unlock their potential, develop confidence, and enjoy the process of learning.</p>
-
-            <p>Join us at EduPadhai and start your exciting learning journey today!</p>
+    <main class="max-w-4xl mx-auto mt-12 px-4">
+        <div class="neo-card p-12 bg-white text-center space-y-6">
+            <h2 class="text-4xl font-black text-gray-800">🌱 About EduQuest</h2>
+            <p class="text-xl text-gray-500 font-bold max-w-2xl mx-auto">EduQuest is a gamified learning platform
+                specially designed to make learning fun, interactive, and engaging for students in rural communities.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 text-left">
+                <div class="bg-blue-50 p-6 rounded-2xl border-2 border-blue-100 font-bold text-gray-700">🎓 High-quality
+                    content mapped to syllabus.</div>
+                <div class="bg-green-50 p-6 rounded-2xl border-2 border-green-100 font-bold text-gray-700">📝
+                    Interactive quizzes to test skills.</div>
+            </div>
+        </div>
+    </main>
+    <%- include('footer.ejs') %><%- include('header.ejs') %>
+<main class="max-w-4xl mx-auto mt-12 px-4">
+    <div class="neo-card p-12 bg-white text-center space-y-6">
+        <h2 class="text-4xl font-black text-gray-800">📩 Contact Us</h2>
+        <p class="text-xl text-gray-500 font-bold">We'd love to hear from you!</p>
+        <div class="inline-block text-left bg-gray-50 p-8 rounded-2xl border-2 border-gray-200 mt-6 font-bold text-gray-700 text-lg space-y-4">
+            <p>📧 Email: <a href="mailto:support@eduquest.in" class="text-blue-500">support@eduquest.in</a></p>
+            <p>📞 Phone: +91 91234 56789</p>
+            <p>📍 Address: EduQuest Learning Hub, Pune, Maharashtra</p>
         </div>
     </div>
-
-
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            try {
-                const response = await fetch("/api/about");
-                const data = await response.json();
-                const container = document.querySelector(".container");
-                container.innerHTML = `<h2>${data.title}</h2>`;
-                data.paragraphs.forEach(p => {
-                    const para = document.createElement("p");
-                    para.textContent = p;
-                    container.appendChild(para);
-                });
-            } catch (e) { console.error(e); }
-        });
-    </script>
-
-    <%- include('footer.ejs') %>
+</main>
+<%- include('footer.ejs') %>
