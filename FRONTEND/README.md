@@ -1,128 +1,252 @@
-Gemini said
-EduQuest: Gamified Learning Platform for Rural Education
-EduQuest is a full-stack, gamified e-learning platform specifically designed to make high-quality education fun, interactive, and accessible for students in rural communities. By combining educational content with game-like elements such as XP points, ranks, and badges, EduQuest encourages consistent learning habits and excitement for discovery.
-+2
+# 🚀 EduPadhai — Gamified Learning Platform
 
-🚀 Features
+> **Making quality education fun, interactive, and accessible for every student.**
 
-Gamified Experience: Earn XP (Experience Points) by completing lessons and quizzes to level up your rank.
+EduPadhai is a full-stack gamified e-learning platform designed for students in Classes 6–12. It combines educational content with game-like mechanics — XP points, ranks, and badges — to encourage consistent learning habits and a genuine excitement for discovery.
 
+---
 
-Diverse Course Library: Access concept videos, problem-solving guides, and interactive content across Mathematics, Science, Computer Science, and English.
+## 📸 Preview
 
+| Home | Dashboard | Learn |
+|------|-----------|-------|
+| Landing page with course cards | XP bar, stats & badges | Step-by-step class → subject → chapter |
 
-Interactive Learning: Includes a multi-question quiz engine and educational games to test and reinforce knowledge.
-+4
+---
 
+## ✨ Features
 
-Personalized Dashboard: Track your individual progress with real-time stats on completed lessons, quizzes taken, and earned badges.
-+1
+- 🎮 **Gamified XP System** — Earn experience points by completing lessons, quizzes and games. Level up from Beginner → Scholar → Master.
+- 📚 **Course Library** — Interactive content across Mathematics, Science, Computer Science and English for Classes 6–9.
+- 📝 **Quiz Engine** — Multi-question quizzes with instant feedback, correct/wrong highlighting and XP rewards.
+- 🎯 **Personalized Dashboard** — Real-time stats: lessons completed, quizzes taken, total XP and badges earned.
+- 🔐 **Authentication** — Signup / Login with user data persisted in MySQL.
+- 📱 **Responsive Design** — Neo-Brutalist UI that works on desktop and mobile.
+- ♿ **Accessibility** — Built with rural and low-bandwidth users in mind.
 
+---
 
-Accessibility Driven: Tailored for learners in rural areas with features like "Read Aloud" for text-to-speech and optimized assets for low-bandwidth 2G/3G networks.
+## 🛠️ Tech Stack
 
-🛠️ Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | EJS Templates, Custom CSS (Neo-Brutalist), Vanilla JS |
+| **Backend** | Node.js, Express.js |
+| **Database** | MySQL (JSON columns for curriculum data) |
+| **Styling** | Nunito font, CSS custom properties, Bootstrap 5 grid |
 
-Frontend: EJS (Embedded JavaScript) Templates, Tailwind CSS (Neo-Brutalist UI), Vanilla JavaScript.
-+1
+---
 
+## 📂 Project Structure
 
-Backend: Node.js, Express.js.
-+1
-
-Database: MySQL (relational storage with JSON columns for complex curriculum data).
-
-📂 Project Structure
-Following a clean Model-View-Controller (MVC) approach, the project is organized to separate backend logic from the frontend presentation.
-
-Plaintext
-SIH---PROJECT/
+```
+EDUQUEST/
+├── app.js                        # Main Express server entry point
+├── package.json
+│
 ├── BACKEND/
 │   ├── config/
-│   │   └── db.js            # MySQL database connection configuration
+│   │   └── db.js                 # MySQL connection with auto-reconnect
 │   └── routes/
-│       ├── auth.js          # API routes for Login, Signup, and User Sync
-│       └── content.js       # API routes for Lessons, Quizzes, and Gamification
-├── FRONTEND/
-│   ├── css/
-│   │   └── style.css        # Professional Neo-Brutalist/Gamified styling
-│   ├── images/              # Project logos and assets
-│   ├── about.ejs            # Platform mission and details
-│   ├── activity.ejs         # Dynamic viewer for lessons, quizzes, and games
-│   ├── dashboard.ejs        # Personalized user progress and stats
-│   ├── header.ejs           # Responsive glassmorphism navigation bar
-│   ├── index.ejs            # Platform landing page
-│   ├── learn.ejs            # Step-by-step learning path selection
-│   ├── login.ejs / signup.ejs # Authentication pages
-│   └── help.ejs             # User support and quick start guide
-├── app.js                   # Main Express server entry point
-├── package.json             # Project dependencies and scripts
-└── README.md                # Project documentation
-⚙️ Installation & Setup
-To run this project locally, follow these steps:
+│       ├── auth.js               # POST /api/login  POST /api/signup  GET /api/user/:id
+│       └── content.js            # GET /api/content/:class/:subject  POST /api/content/progress/update
+│
+└── FRONTEND/
+    ├── css/
+    │   └── style.css             # Full design system
+    ├── images/                   # Logo and assets
+    ├── index.ejs                 # Landing page
+    ├── dashboard.ejs             # User stats & XP dashboard
+    ├── learn.ejs                 # Class → Subject → Chapter selector
+    ├── activity.ejs              # Notes / Quiz / Game viewer
+    ├── about.ejs                 # About the platform
+    ├── contact.ejs               # Contact details
+    ├── help.ejs                  # Help & FAQ
+    ├── login.ejs                 # Login page
+    ├── signup.ejs                # Signup page
+    ├── header.ejs                # Shared navbar (included in all pages)
+    └── footer.ejs                # Shared footer (included in all pages)
+```
 
-1. Prerequisites
-Node.js installed on your machine.
+---
 
-MySQL server running.
+## ⚙️ Installation & Setup
 
-2. Database Setup
-Execute the following SQL commands in your MySQL Workbench to initialize the database:
+### 1. Prerequisites
 
-SQL
+- [Node.js](https://nodejs.org/) v18+ installed
+- MySQL server running locally
+
+---
+
+### 2. Database Setup
+
+Open **MySQL Workbench** (or any MySQL client) and run:
+
+```sql
 CREATE DATABASE eduquest_db;
 USE eduquest_db;
 
--- Create users table
+-- Users table
 CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    phone VARCHAR(15),
-    password VARCHAR(255),
-    points INT DEFAULT 50,
-    badges INT DEFAULT 1,
-    lessons INT DEFAULT 0,
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100),
+    email        VARCHAR(100) UNIQUE,
+    phone        VARCHAR(15),
+    password     VARCHAR(255),
+    points       INT DEFAULT 50,
+    badges       INT DEFAULT 1,
+    lessons      INT DEFAULT 0,
     quizzesTaken INT DEFAULT 0
 );
 
--- Create content table
+-- Educational content table
 CREATE TABLE educational_content (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    class_level VARCHAR(10),
-    subject VARCHAR(50),
-    chapter_name VARCHAR(100),
-    activity_type VARCHAR(20),
-    content_data JSON
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    class_level   VARCHAR(10),
+    subject       VARCHAR(50),
+    chapter_name  VARCHAR(100),
+    activity_type VARCHAR(20),   -- 'notes' | 'quiz' | 'game'
+    content_data  JSON           -- lesson body, quiz questions, or game config
 );
-3. Clone and Install
-Bash
-git clone <your-repository-link>
-cd SIH---PROJECT
-npm install
-4. Configuration
-Update BACKEND/config/db.js with your MySQL credentials:
+```
 
-JavaScript
+#### Sample content row (quiz):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Fractions Introduction', 'quiz',
+  '{
+    "questions": [
+      {
+        "q": "What is 1/2 + 1/2?",
+        "options": ["1", "2", "1/4", "3/4"],
+        "answer": "1"
+      }
+    ]
+  }'
+);
+```
+
+#### Sample content row (notes):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Introduction to Fractions', 'notes',
+  '{
+    "body": "<h3>What is a Fraction?</h3><p>A fraction represents a part of a whole...</p>"
+  }'
+);
+```
+
+---
+
+### 3. Clone & Install
+
+```bash
+git clone <your-repository-link>
+cd EDUQUEST
+npm install
+```
+
+---
+
+### 4. Configure Database Password
+
+Open `BACKEND/config/db.js` and update your MySQL credentials:
+
+```js
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'YOUR_MYSQL_PASSWORD',
+    host:     'localhost',
+    user:     'root',
+    password: 'YOUR_MYSQL_PASSWORD',   // ← change this
     database: 'eduquest_db'
 });
-5. Run the Application
-Bash
+```
+
+---
+
+### 5. Run the Server
+
+```bash
 node app.js
-The server will start at http://localhost:5000.
+```
 
-📜 Usage
+```
+╔══════════════════════════════════════╗
+║  🚀 EduPadhai running on port 3000   ║
+║  http://localhost:3000               ║
+╚══════════════════════════════════════╝
+```
 
-Sign Up: Create an account to start tracking your learning journey.
-+1
+Open your browser and visit **http://localhost:3000**
 
+---
 
-Learn: Navigate to the "Learn" section, select your class and subject, and choose a module to start.
-+3
+## 🔌 API Reference
 
+### Auth Routes — `/api`
 
-Progress: Check your "My Account" dashboard regularly to see your earned XP and badges
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/signup` | Register a new user |
+| `POST` | `/api/login` | Login with email & password |
+| `GET`  | `/api/user/:id` | Fetch fresh user data (XP sync) |
+
+### Content Routes — `/api/content`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/content/:class/:subject` | Get all chapters for a class & subject |
+| `POST` | `/api/content/progress/update` | Update user XP after activity completion |
+| `GET`  | `/api/content/static/about` | Static about page data |
+| `GET`  | `/api/content/static/contact` | Static contact page data |
+
+---
+
+## 📖 Usage Guide
+
+1. **Sign Up** — Create a free account with your name, email and phone.
+2. **Login** — Sign in to start tracking your progress.
+3. **Learn** — Go to *Learn*, select your class (6th–9th), pick a subject, and choose a module.
+4. **Complete Activities** — Read notes, take quizzes, or play games to earn XP.
+5. **Dashboard** — Check *My Account* to see your XP bar, badges, lessons and quizzes stats.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Leaderboard page (top students by XP)
+- [ ] Password hashing with bcrypt
+- [ ] Session-based auth (express-session / JWT)
+- [ ] Offline support / PWA
+- [ ] Read Aloud (text-to-speech) for accessibility
+- [ ] Admin panel to add/edit content without SQL
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes please open an issue first.
+
+1. Fork the repository
+2. Create your feature branch — `git checkout -b feature/your-feature`
+3. Commit your changes — `git commit -m 'Add some feature'`
+4. Push to the branch — `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ for rural students across India 🇮🇳</strong>
+</div>
