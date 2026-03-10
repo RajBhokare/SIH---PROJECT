@@ -11,27 +11,27 @@
     </div>
 
     <script>
-        document.getElementById("loginForm").addEventListener("submit", e => {
+        document.getElementById("loginForm").addEventListener("submit", async e => {
             e.preventDefault();
-
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
 
-            let users = JSON.parse(localStorage.getItem("users")) || [];
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
 
-            // Find user
-            const user = users.find(u => u.email === email && u.password === password);
-
-            if (user) {
-                // Store logged-in user in localStorage
-                localStorage.setItem("loggedInUser", JSON.stringify(user));
-
-                alert(`Welcome back, ${user.name}!`);
-                window.location.href = "/dashboard";
-            } else {
-                alert("Invalid email or password!");
+                if (response.ok) {
+                    localStorage.setItem("loggedInUser", JSON.stringify(data.user));
+                    window.location.href = "/dashboard";
+                } else {
+                    alert(data.error || "Login failed!");
+                }
+            } catch (err) {
+                console.error(err);
             }
         });
     </script>
-
-    <%- include('footer.ejs') %>

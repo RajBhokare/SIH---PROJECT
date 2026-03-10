@@ -43,9 +43,11 @@ h1, h2, h3, h4, h5 {
 }
 
 .site-logo {
-  height: 180px;
+  height: 110px; /* 180px was too big, adjust to fit header */
+  width: auto;
   z-index: 2;
 }
+
 
 .header-symbols {
   display: flex;
@@ -112,7 +114,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .signup-btn {
-  background: #6c63ff;
+  background: #ffbf00;
   color: #fff;
   padding: 8px 20px;
   border-radius: 10px;
@@ -120,6 +122,22 @@ h1, h2, h3, h4, h5 {
   transition: all 0.3s ease;
   z-index: 2;
 }
+.already-have-account {
+  font-size: 24px;
+  color: #555;
+  text-align: center;
+}
+
+.already-have-account a {
+  color: #1d4ed8; /* blue link */
+  text-decoration: none;
+}
+
+.already-have-account a:hover {
+  text-decoration: underline;
+}
+
+
 
 .signup-btn:hover {
   background: #5a54d1;
