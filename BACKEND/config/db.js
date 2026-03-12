@@ -1,35 +1,40 @@
 const mysql = require('mysql2');
-const path = require('path');
+const path  = require('path');
 
-// Try to load env from absolute path
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-// PROOF TEST: If these are undefined, the .env file isn't being read correctly
-const dbUser = process.env.DB_USER || 'root'; // Fallback to 'root'
-const dbPass = process.env.DB_PASS || 'user'; // Fallback to 'user'
-const dbName = process.env.DB_NAME || 'eduquest_db';
+const config = {
+    host:     process.env.DB_HOST || 'localhost',
+    user:     process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',   // FIX: empty string default, not 'user'
+    database: process.env.DB_NAME || 'eduquest_db'
+};
 
-console.log("--- Connection Attempt ---");
-console.log(`User: "${dbUser}"`); 
-console.log(`DB: "${dbName}"`);
-console.log("--------------------------");
+console.log(`🔌 Connecting to MySQL as "${config.user}" @ "${config.database}"`);
 
-const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: dbUser,
-    password: dbPass,
-    database: dbName
-});
+const db = mysql.createConnection(config);
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ Database connection failed. Possible reasons:');
-        console.error('1. MySQL Service is not running.');
-        console.error('2. Password "user" is incorrect for user "root".');
-        console.error('3. Database "eduquest_db" does not exist.');
-        return;
-    }
-    console.log('✅ Connected to MySQL successfully!');
-});
+function connectDB() {
+    db.connect((err) => {
+        if (err) {
+            console.error('❌ DB connection failed:', err.message);
+            console.log('🔄 Retrying in 5s...');
+            setTimeout(connectDB, 5000);
+            return;
+        }
+        console.log('✅ MySQL connected successfully!');
+    });
 
+    // FIX: auto-reconnect if connection drops
+    db.on('error', (err) => {
+        console.error('⚠️  DB error:', err.code);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+            connectDB();
+        } else {
+            throw err;
+        }
+    });
+}
+
+connectDB();
 module.exports = db;
