@@ -1,0 +1,1584 @@
+
+
+===== FILE: ./.env =====
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=data
+DB_NAME=eduquest_db
+PORT=3000
+
+===== FILE: ./.gitignore =====
+
+node_modules/
+.env
+.DS_Store
+dist/
+*.log
+
+===== FILE: ./app.js =====
+
+require('dotenv').config(); // ← MUST be the very first line
+
+const express = require('express');
+const path    = require('path');
+const app     = express();
+const PORT    = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'FRONTEND'));
+app.use(express.static(path.join(__dirname, 'FRONTEND')));
+
+const authRoutes    = require('./BACKEND/routes/auth');
+const contentRoutes = require('./BACKEND/routes/content');
+const db            = require('./BACKEND/config/db');
+
+app.use('/api',         authRoutes);
+app.use('/api/content', contentRoutes);
+
+app.get('/',          (req, res) => res.render('index'));
+app.get('/dashboard', (req, res) => res.render('dashboard'));
+app.get('/learn',     (req, res) => res.render('learn'));
+app.get('/about',     (req, res) => res.render('about'));
+app.get('/contact',   (req, res) => res.render('contact'));
+app.get('/help',      (req, res) => res.render('help'));
+app.get('/login',     (req, res) => res.render('login'));
+app.get('/signup',    (req, res) => res.render('signup'));
+
+// FIX: parse content_data JSON safely before passing to EJS
+app.get('/activity/:id', (req, res) => {
+    db.query(
+        "SELECT * FROM educational_content WHERE id = ?",
+        [req.params.id],
+        (err, results) => {
+            if (err || results.length === 0)
+                return res.status(404).send("Activity not found");
+
+            const activity = results[0];
+            let contentData = {};
+            try {
+                contentData = typeof activity.content_data === 'string'
+                    ? JSON.parse(activity.content_data)
+                    : activity.content_data || {};
+            } catch (e) {
+                contentData = { body: String(activity.content_data || '') };
+            }
+
+            res.render('activity', {
+                topic:        activity.chapter_name,
+                cls:          activity.class_level,
+                subject:      activity.subject,
+                activityType: activity.activity_type,
+                content:      contentData
+            });
+        }
+    );
+});
+
+app.use((req, res) => res.status(404).send('<h1>404 — Page not found</h1><a href="/">Go Home</a>'));
+
+app.listen(PORT, () => console.log(`✅ Server running → http://localhost:${PORT}`));
+
+===== FILE: ./BACKEND/config/db.js =====
+
+const mysql = require('mysql2');
+const path  = require('path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+
+// Support DATABASE_URL (used by Render, Railway, PlanetScale, etc.)
+// Falls back to individual env vars for local development
+let db;
+
+if (process.env.DATABASE_URL) {
+    console.log('🔌 Connecting via DATABASE_URL...');
+    db = mysql.createConnection(process.env.DATABASE_URL);
+} else {
+    // Validate required env vars
+    const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
+    const missing  = required.filter(key => !process.env[key]);
+    if (missing.length) {
+        console.error(`❌ Missing required env vars: ${missing.join(', ')}`);
+        console.error('   Set them in your .env file (local) or deployment dashboard (production).');
+        process.exit(1);
+    }
+
+    const config = {
+        host:     process.env.DB_HOST,
+        user:     process.env.DB_USER,
+        password: process.env.DB_PASS || '',
+        database: process.env.DB_NAME,
+        port:     parseInt(process.env.DB_PORT, 10) || 3306
+    };
+
+    console.log(`🔌 Connecting to MySQL as "${config.user}" @ ${config.host}:${config.port}/${config.database}`);
+    db = mysql.createConnection(config);
+}
+
+function connectDB() {
+    db.connect((err) => {
+        if (err) {
+            console.error('❌ DB connection failed:', err.message);
+            console.log('🔄 Retrying in 5s...');
+            setTimeout(connectDB, 5000);
+            return;
+        }
+        console.log('✅ MySQL connected successfully!');
+    });
+
+    // Auto-reconnect if connection drops
+    db.on('error', (err) => {
+        console.error('⚠️  DB error:', err.code);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+            connectDB();
+        } else {
+            throw err;
+        }
+    });
+}
+
+connectDB();
+module.exports = db;
+
+===== FILE: ./BACKEND/routes/auth.js =====
+
+// ========== BACKEND/routes/auth.js ==========
+const express = require('express');
+const router = express.Router();
+const db = require('../config/db');
+
+// Signup Route
+router.post('/signup', (req, res) => {
+    const { name, email, phone, password } = req.body;
+    const checkQuery = "SELECT * FROM users WHERE email = ?";
+    
+    db.query(checkQuery, [email], (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length > 0) return res.status(400).json({ error: "User already exists!" });
+
+        const insertQuery = "INSERT INTO users (name, email, phone, password) VALUES (?, ?, ?, ?)";
+        db.query(insertQuery, [name, email, phone, password], (err, result) => {
+            if (err) return res.status(500).json({ error: "Failed to register user" });
+            res.status(201).json({ 
+                message: "Signup successful", 
+                user: { id: result.insertId, name, email, phone, points: 50, badges: 1, lessons: 0, quizzesTaken: 0 } 
+            });
+        });
+    });
+});
+
+// Login Route
+router.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    const query = "SELECT * FROM users WHERE email = ? AND password = ?";
+    
+    db.query(query, [email, password], (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length > 0) {
+            const user = results[0];
+            delete user.password; 
+            res.status(200).json({ message: "Login successful", user });
+        } else {
+            res.status(401).json({ error: "Invalid email or password" });
+        }
+    });
+});
+
+// Sync User Progress Route
+router.get('/user/:id', (req, res) => {
+    const userId = req.params.id;
+    const query = "SELECT id, name, email, points, badges, lessons, quizzesTaken FROM users WHERE id = ?";
+    
+    db.query(query, [userId], (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (results.length > 0) {
+            res.status(200).json(results[0]);
+        } else {
+            res.status(404).json({ error: "User not found" });
+        }
+    });
+});
+
+module.exports = router;
+
+===== FILE: ./BACKEND/routes/content.js =====
+
+const express = require('express');
+const router  = express.Router();
+const db      = require('../config/db');
+
+// FIX: specific routes FIRST, generic /:class/:subject LAST
+// (otherwise /:class/:subject intercepts /progress/update and /static/*)
+
+// POST /api/content/progress/update
+router.post('/progress/update', (req, res) => {
+    const { userId, pointsEarned, type } = req.body;
+    if (!userId || pointsEarned === undefined || !type)
+        return res.status(400).json({ error: "Missing fields" });
+
+    let query = "UPDATE users SET points = points + ?";
+    if (type === 'quiz')                     query += ", quizzesTaken = quizzesTaken + 1";
+    if (type === 'notes' || type === 'game') query += ", lessons = lessons + 1";
+    query += " WHERE id = ?";
+
+    db.query(query, [pointsEarned, userId], (err) => {
+        if (err) return res.status(500).json({ error: "Failed to update progress" });
+        res.status(200).json({ message: "Progress updated!" });
+    });
+});
+
+// GET /api/content/static/about
+router.get('/static/about', (req, res) => {
+    res.json({
+        title: "🌱 About EduPadhai",
+        paragraphs: ["EduPadhai makes learning fun for every student!"]
+    });
+});
+
+// GET /api/content/static/contact
+router.get('/static/contact', (req, res) => {
+    res.json({
+        title: "📩 Contact Us",
+        email: "support@edupadhai.com",
+        phone: "+91 91234 56789"
+    });
+});
+
+// GET /api/content/:class/:subject  ← MUST be last
+router.get('/:class/:subject', (req, res) => {
+    const { class: classLevel, subject } = req.params;
+    db.query(
+        "SELECT id, chapter_name, activity_type FROM educational_content WHERE class_level = ? AND subject = ? ORDER BY id ASC",
+        [classLevel, subject],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: "Database error" });
+            res.status(200).json(results);
+        }
+    );
+});
+
+module.exports = router;
+
+===== FILE: ./FRONTEND/about.ejs =====
+
+<%- include('header.ejs') %>
+    <main class="max-w-4xl mx-auto mt-12 px-4">
+        <div class="neo-card p-12 bg-white text-center space-y-6">
+            <h2 class="text-4xl font-black text-gray-800">🌱 About EduQuest</h2>
+            <p class="text-xl text-gray-500 font-bold max-w-2xl mx-auto">EduQuest is a gamified learning platform
+                specially designed to make learning fun, interactive, and engaging for students in rural communities.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 text-left">
+                <div class="bg-blue-50 p-6 rounded-2xl border-2 border-blue-100 font-bold text-gray-700">🎓 High-quality
+                    content mapped to syllabus.</div>
+                <div class="bg-green-50 p-6 rounded-2xl border-2 border-green-100 font-bold text-gray-700">📝
+                    Interactive quizzes to test skills.</div>
+            </div>
+        </div>
+    </main>
+
+<%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/activity.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-3xl mx-auto mt-8 px-4 animate-in fade-in zoom-in-95 duration-300 mb-20">
+        <button onclick="window.location.href='/learn'"
+            class="mb-6 font-bold text-gray-500 hover:text-gray-800 flex items-center gap-2">
+            ✖ Exit Activity
+        </button>
+
+        <div id="serverData" data-content="<%= JSON.stringify(content || {}) %>" data-type="<%= activityType %>"
+            style="display: none;"></div>
+
+        <% if(activityType==="notes" ) { %>
+            <div class="neo-card p-8 md:p-12 space-y-8 bg-white">
+                <div class="flex items-center gap-4 border-b-2 border-gray-100 pb-6">
+                    <span class="text-4xl">📖</span>
+                    <h1 class="text-3xl font-black text-gray-800">
+                        <%= topic %>
+                    </h1>
+                </div>
+
+                <div class="notes-section prose prose-lg text-gray-600 font-medium space-y-4">
+                    <%- content.body %>
+                </div>
+
+                <div class="pt-8 border-t-2 border-gray-100 flex justify-center">
+                    <button onclick="completeActivity(10, 'notes')"
+                        class="btn-chunky btn-green px-8 py-4 text-xl w-full md:w-auto text-white">
+                        Mark as Read & Earn 10 XP
+                    </button>
+                </div>
+            </div>
+            <% } else if(activityType==="quiz" ) { %>
+                <div id="quizApp" class="neo-card p-8 md:p-12 bg-white flex flex-col min-h-[400px]">
+                </div>
+                <% } else if(activityType==="game" ) { %>
+                    <div class="neo-card p-12 text-center space-y-6 bg-white">
+                        <div class="text-6xl animate-bounce">🎮</div>
+                        <h2 class="text-3xl font-black text-gray-800">
+                            <%= content.gameName || 'Game Loading...' %>
+                        </h2>
+                        <p class="text-gray-500 font-bold">
+                            <%= content.instructions || 'Interactive games coming soon!' %>
+                        </p>
+                        <button onclick="completeActivity(30, 'game')"
+                            class="btn-chunky btn-yellow px-8 py-4 text-white text-lg mt-4">
+                            Claim 30 Free XP Anyway
+                        </button>
+                    </div>
+                    <% } %>
+    </main>
+
+    <script>
+        const serverDiv = document.getElementById('serverData');
+        const activityData = JSON.parse(serverDiv.getAttribute('data-content'));
+        const activityType = serverDiv.getAttribute('data-type');
+
+        async function completeActivity(points, type) {
+            const user = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!user) { alert("Please login to save your XP!"); return; }
+
+            try {
+                const res = await fetch('/api/content/progress/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, pointsEarned: points, type: type })
+                });
+                if (res.ok) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // QUIZ LOGIC
+        if (activityType === 'quiz') {
+            let currentQ = 0;
+            let score = 0;
+            const container = document.getElementById('quizApp');
+            const questions = activityData.questions;
+
+            window.renderQuiz = function () {
+                if (currentQ >= questions.length) {
+                    const totalXP = score * 20;
+                    container.innerHTML = `
+                    <div class="text-center space-y-6 animate-in zoom-in">
+                        <div class="text-7xl mb-4">🌟</div>
+                        <h2 class="text-4xl font-black text-gray-800">Quiz Complete!</h2>
+                        <p class="text-xl font-bold text-gray-500">You scored ${score} out of ${questions.length}</p>
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 max-w-sm mx-auto my-8">
+                            <p class="text-yellow-600 font-bold uppercase tracking-wider text-sm mb-1">XP Earned</p>
+                            <p class="text-4xl font-black text-yellow-500">+${totalXP} XP</p>
+                        </div>
+                        <button onclick="completeActivity(${totalXP}, 'quiz')" class="btn-chunky btn-green px-10 py-4 text-xl text-white">Claim XP & Return</button>
+                    </div>`;
+                    return;
+                }
+
+                const q = questions[currentQ];
+                const progress = (currentQ / questions.length) * 100;
+
+                let optionsHtml = q.options.map(opt => `
+                <button onclick="checkAnswer(this, \`${opt}\`, \`${q.answer}\`)" class="btn-chunky btn-white py-6 text-lg border-2 w-full text-left px-6 text-gray-700">
+                    ${opt}
+                </button>
+            `).join('');
+
+                container.innerHTML = `
+                <div class="mb-8 space-y-4">
+                    <div class="text-gray-500 font-bold">Question ${currentQ + 1} of ${questions.length}</div>
+                    <div class="progress-bg h-4 w-full"><div class="progress-fill" style="width: ${progress}%; background-color: #1cb0f6;"></div></div>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-black text-gray-800 mb-8 text-center">${q.q}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="optionsContainer">${optionsHtml}</div>
+                <div id="quizFooter" class="h-24 flex items-center justify-center border-t-2 border-gray-100 pt-6">
+                    <div class="text-gray-400 font-bold">Select an answer to continue</div>
+                </div>
+            `;
+            };
+
+            window.checkAnswer = function (btn, selected, correct) {
+                const btns = document.getElementById('optionsContainer').querySelectorAll('button');
+                btns.forEach(b => b.disabled = true); // lock answers
+
+                const footer = document.getElementById('quizFooter');
+
+                if (selected === correct) {
+                    btn.className = "btn-chunky btn-green py-6 text-lg border-2 w-full text-left px-6 text-white";
+                    score++;
+                    footer.innerHTML = `
+                    <div class="w-full flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white text-2xl">🎉</div>
+                            <h3 class="font-black text-xl text-green-500">Awesome!</h3>
+                        </div>
+                        <button onclick="currentQ++; renderQuiz()" class="btn-chunky btn-blue px-8 py-3 text-lg text-white">Continue</button>
+                    </div>`;
+                } else {
+                    btn.className = "btn-chunky btn-red py-6 text-lg border-2 w-full text-left px-6 text-white";
+                    footer.innerHTML = `
+                    <div class="w-full flex items-center justify-between animate-in slide-in-from-bottom-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white text-2xl">😅</div>
+                            <h3 class="font-black text-xl text-red-500">Correct: ${correct}</h3>
+                        </div>
+                        <button onclick="currentQ++; renderQuiz()" class="btn-chunky btn-blue px-8 py-3 text-lg text-white">Continue</button>
+                    </div>`;
+                }
+            };
+
+            renderQuiz();
+        }
+    </script>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/contact.ejs =====
+
+<%- include('header.ejs') %>
+    <main class="max-w-4xl mx-auto mt-12 px-4">
+        <div class="neo-card p-12 bg-white text-center space-y-6">
+            <h2 class="text-4xl font-black text-gray-800">📩 Contact Us</h2>
+            <p class="text-xl text-gray-500 font-bold">We'd love to hear from you!</p>
+            <div
+                class="inline-block text-left bg-gray-50 p-8 rounded-2xl border-2 border-gray-200 mt-6 font-bold text-gray-700 text-lg space-y-4">
+                <p>📧 Email: <a href="mailto:support@eduquest.in" class="text-blue-500">support@eduquest.in</a></p>
+                <p>📞 Phone: +91 91234 56789</p>
+                <p>📍 Address: EduQuest Learning Hub, Pune, Maharashtra</p>
+            </div>
+        </div>
+    </main>
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/dashboard.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-5xl mx-auto mt-8 px-4">
+        <div class="space-y-8 animate-in fade-in duration-300">
+
+            <div class="neo-card p-8 bg-white flex flex-col md:flex-row items-center gap-8">
+                <div
+                    class="w-32 h-32 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-6xl relative">
+                    👨‍🎓
+                    <div
+                        class="absolute -bottom-2 -right-2 bg-yellow-400 text-white text-sm font-black px-3 py-1 rounded-full border-2 border-white shadow-sm">
+                        Lv. 5
+                    </div>
+                </div>
+                <div class="flex-1 text-center md:text-left">
+                    <h1 class="text-4xl font-black text-gray-800 mb-2" id="welcomeText">Welcome back! 👋</h1>
+                    <p class="text-xl text-gray-500 font-bold mb-4">🏆 Your Rank: <span
+                            class="text-blue-500">Scholar</span></p>
+
+                    <div class="space-y-2 max-w-md mx-auto md:mx-0">
+                        <div class="flex justify-between text-sm font-bold text-gray-600">
+                            <span id="pointsEarnedTxt">0 XP</span>
+                            <span><span id="pointsNeeded">200</span> XP to Master</span>
+                        </div>
+                        <div class="progress-bg h-6 w-full shadow-inner border-2 border-gray-100">
+                            <div class="progress-fill" id="xpBar" style="width: 0%; background-color: #ffc800;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <a href="/learn"
+                        class="btn-chunky btn-blue px-8 py-4 text-lg w-full md:w-auto inline-block text-center">Resume
+                        Journey</a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-blue-50 rounded-2xl text-3xl">📖</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="completedLessons">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Lessons</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-yellow-50 rounded-2xl text-3xl">⚡</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="quizzesTaken">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Quizzes</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-green-50 rounded-2xl text-3xl">⭐</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="pointsEarned">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Total XP</div>
+                </div>
+                <div class="neo-card p-6 flex flex-col items-center text-center">
+                    <div class="mb-3 p-3 bg-purple-50 rounded-2xl text-3xl">🛡️</div>
+                    <div class="text-3xl font-black text-gray-800 mb-1" id="badgesEarned">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide">Badges</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const localUser = JSON.parse(localStorage.getItem("loggedInUser"));
+            if (!localUser) {
+                window.location.href = "/login";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/user/${localUser.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem("loggedInUser", JSON.stringify(data)); // Sync
+
+                    document.getElementById("welcomeText").textContent = `Welcome back, ${data.name}! 👋`;
+                    document.getElementById("completedLessons").textContent = data.lessons || 0;
+                    document.getElementById("quizzesTaken").textContent = data.quizzesTaken || 0;
+
+                    const points = data.points || 0;
+                    document.getElementById("pointsEarned").textContent = points;
+                    document.getElementById("pointsEarnedTxt").textContent = `${points} XP`;
+                    document.getElementById("badgesEarned").textContent = data.badges || 0;
+
+                    const xpPercentage = Math.min((points / 500) * 100, 100);
+                    document.getElementById("xpBar").style.width = `${xpPercentage}%`;
+
+                    let needed = 500 - points;
+                    document.getElementById("pointsNeeded").textContent = needed < 0 ? 0 : needed;
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        });
+    </script>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/data.ejs =====
+
+<%- include('header.ejs') %>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/footer.ejs =====
+
+<footer class="mt-20 py-8 text-center text-gray-400 font-bold">
+    <p>&copy; <%= new Date().getFullYear() %> EduQuest. All Rights Reserved.</p>
+</footer>
+</body>
+
+</html>
+
+===== FILE: ./FRONTEND/header.ejs =====
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EduQuest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="min-h-screen pb-20 text-gray-700">
+
+    <nav
+        class="glass-nav sticky top-4 z-50 px-6 py-4 flex items-center justify-between shadow-sm rounded-full mx-auto max-w-5xl mt-4">
+        <a href="/" class="flex items-center gap-2 cursor-pointer">
+            <div class="text-3xl font-black text-blue-500 tracking-tight flex items-center gap-1">
+                EduQuest
+                <span class="text-2xl bounce-icon">📐</span>
+                <span class="text-2xl bounce-icon">🧬</span>
+                <span class="text-2xl bounce-icon">💻</span>
+            </div>
+        </a>
+
+        <div class="hidden md:flex items-center gap-8 font-bold text-gray-500">
+            <a href="/" class="hover:text-blue-500 transition-colors">Home</a>
+            <a href="/learn" class="hover:text-blue-500 transition-colors">Learn</a>
+            <a href="/about" class="hover:text-blue-500 transition-colors">About</a>
+            <a href="/contact" class="hover:text-blue-500 transition-colors">Contact</a>
+        </div>
+
+        <div id="authContainer" class="flex items-center gap-3">
+        </div>
+    </nav>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const user = JSON.parse(localStorage.getItem("loggedInUser"));
+            const authContainer = document.getElementById("authContainer");
+
+            if (user) {
+                // UI for Logged In User
+                authContainer.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <a href="/dashboard" class="flex items-center gap-2 font-bold text-gray-700 hover:text-blue-500">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-md">👨‍🎓</div>
+                            <span class="hidden sm:inline">My Account</span>
+                        </a>
+                        <button onclick="logoutUser()" class="text-gray-400 hover:text-red-500 font-bold transition-colors">Logout</button>
+                    </div>
+                `;
+            } else {
+                // UI for Logged Out User
+                authContainer.innerHTML = `
+                    <a href="/login" class="font-bold text-gray-500 hover:text-blue-500">Login</a>
+                    <a href="/signup" class="btn-chunky btn-blue px-6 py-2 text-sm text-white">Sign Up</a>
+                `;
+            }
+        });
+
+        function logoutUser() {
+            localStorage.removeItem("loggedInUser");
+            window.location.href = "/";
+        }
+    </script>
+
+===== FILE: ./FRONTEND/help.ejs =====
+
+<%- include('header.ejs') %>
+
+    <div class="container help-page">
+        <h1>Need Help?</h1>
+        <p>
+            Find answers about using our gamified learning platform. This page is tailored for learners in rural
+            communities looking for support and tips!
+        </p>
+
+        <h2>Quick Start Guide</h2>
+        <ul>
+            <li><strong>Creating your account:</strong> Tap <em>Sign Up</em> and provide your phone number or email.
+            </li>
+            <li><strong>Joining a course:</strong> Browse the Course Library after login and click <em>Join</em>.</li>
+        </ul>
+
+        <h2>How Gamification Works</h2>
+        <ul>
+            <li><b>Points:</b> Complete lessons, quizzes, and challenges to earn points.</li>
+            <li><b>Badges:</b> Unlock badges when you reach milestones.</li>
+            <li><b>Leaderboard:</b> See your rank among other learners.</li>
+        </ul>
+
+        <h2>Contact Us</h2>
+        <div class="contact-card">
+            <p><strong>We're here to help!</strong></p>
+            <p>Call: <a href="tel:+919999999999">+91 99999 99999</a></p>
+            <p>Email: <a href="mailto:help@learnplay.com">help@learnplay.com</a></p>
+            <p>WhatsApp: <a href="https://wa.me/919999999999">Message us</a></p>
+        </div>
+    </div>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/index.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-5xl mx-auto mt-8 px-4">
+        <section class="text-center py-16 space-y-6">
+            <h1 class="text-5xl md:text-7xl font-black text-gray-800 tracking-tight">
+                Free Classes for <br /> Students <span class="text-blue-500">🚀</span>
+            </h1>
+            <p class="text-xl text-gray-500 font-semibold max-w-2xl mx-auto">
+                Learn Math, Science, and more with fun games and interactive quizzes. Education made easy and accessible
+                for everyone!
+            </p>
+            <div class="pt-6">
+                <a href="/learn"
+                    class="btn-chunky btn-green px-10 py-4 text-xl inline-flex items-center gap-2 text-white">
+                    Start Learning Now ➡
+                </a>
+            </div>
+        </section>
+
+        <section class="max-w-4xl mx-auto mt-12">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-black text-gray-800">Popular Courses</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <a href="/learn" class="neo-card p-6 flex flex-col items-center text-center">
+                    <div
+                        class="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center text-4xl mb-4 border-2 border-white shadow-sm">
+                        📘</div>
+                    <h3 class="text-xl font-bold text-blue-600">Mathematics</h3>
+                </a>
+
+                <a href="/learn" class="neo-card p-6 flex flex-col items-center text-center">
+                    <div
+                        class="w-20 h-20 bg-green-100 rounded-2xl flex items-center justify-center text-4xl mb-4 border-2 border-white shadow-sm">
+                        🔬</div>
+                    <h3 class="text-xl font-bold text-green-600">Science</h3>
+                </a>
+
+                <a href="/learn" class="neo-card p-6 flex flex-col items-center text-center">
+                    <div
+                        class="w-20 h-20 bg-purple-100 rounded-2xl flex items-center justify-center text-4xl mb-4 border-2 border-white shadow-sm">
+                        💻</div>
+                    <h3 class="text-xl font-bold text-purple-600">Computer Science</h3>
+                </a>
+
+                <a href="/learn" class="neo-card p-6 flex flex-col items-center text-center">
+                    <div
+                        class="w-20 h-20 bg-yellow-100 rounded-2xl flex items-center justify-center text-4xl mb-4 border-2 border-white shadow-sm">
+                        📚</div>
+                    <h3 class="text-xl font-bold text-yellow-600">English</h3>
+                </a>
+            </div>
+            <section class="max-w-5xl mx-auto mt-16 px-4">
+                <h2 class="text-3xl font-black text-gray-800 mb-8 text-center">Supercharged Features ⚡</h2>
+            
+                <div class="relative overflow-hidden py-4">
+                    <div class="flex transition-transform duration-500 ease-in-out" id="featureCarousel">
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🗣️</div>
+                                <h4 class="text-xl font-extrabold mb-2">Read Aloud</h4>
+                                <p class="text-gray-500 font-bold text-sm">Text-to-speech for better accessibility in rural areas.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🌐</div>
+                                <h4 class="text-xl font-extrabold mb-2">Regional Support</h4>
+                                <p class="text-gray-500 font-bold text-sm">Switch between Hindi, Marathi, and English instantly.</p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">📉</div>
+                                <h4 class="text-xl font-extrabold mb-2">Low Data Mode</h4>
+                                <p class="text-gray-500 font-bold text-sm">Optimized for 2G/3G networks with light assets.</p>
+                            </div>
+                        </div>
+                        <div class="min-w-full md:min-w-[33.33%] px-3">
+                            <div class="neo-card p-8 flex flex-col items-center text-center h-full feature-item">
+                                <div class="text-5xl mb-4 bounce-icon">🏅</div>
+                                <h4 class="text-xl font-extrabold mb-2">Smart Badges</h4>
+                                <p class="text-gray-500 font-bold text-sm">Earn unique badges for daily learning streaks.</p>
+                            </div>
+                        </div>
+                    </div>
+            
+                    <button onclick="moveCarousel(-1)"
+                        class="absolute left-0 top-1/2 -translate-y-1/2 btn-chunky btn-white p-2 rounded-full">⬅</button>
+                    <button onclick="moveCarousel(1)"
+                        class="absolute right-0 top-1/2 -translate-y-1/2 btn-chunky btn-white p-2 rounded-full">➡</button>
+                </div>
+            </section>
+            
+            <script>
+                let currentSlide = 0;
+                const carousel = document.getElementById('featureCarousel');
+                const totalSlides = document.querySelectorAll('.feature-item').length;
+
+                function moveCarousel(direction) {
+                    const visibleSlides = window.innerWidth >= 768 ? 3 : 1;
+                    const maxSlide = totalSlides - visibleSlides;
+
+                    currentSlide += direction;
+
+                    if (currentSlide < 0) currentSlide = maxSlide;
+                    if (currentSlide > maxSlide) currentSlide = 0;
+
+                    const offset = currentSlide * (100 / visibleSlides);
+                    carousel.style.transform = `translateX(-${offset}%)`;
+                }
+
+                // Auto-slide every 5 seconds
+                setInterval(() => moveCarousel(1), 5000);
+            </script>
+        </section>
+    </main>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/learn.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-3xl mx-auto mt-8 px-4 space-y-8 animate-in fade-in duration-300">
+        <div class="text-center space-y-2 mb-10">
+            <h1 class="text-4xl font-black text-gray-800">Your Learning Path 🗺️</h1>
+            <p class="text-gray-500 font-bold text-lg">Step-by-step to master new skills!</p>
+        </div>
+
+        <div id="classSection" class="space-y-4">
+            <h2 class="text-xl font-black text-gray-700 flex items-center gap-2">
+                <span
+                    class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-[0_3px_0_#1e40af]">1</span>
+                Select Your Class
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <% const classes=["6th", "7th" , "8th" , "9th" ]; %>
+                    <% classes.forEach(cls=> { %>
+                        <button onclick="selectClass('<%= cls %>')"
+                            class="btn-chunky btn-white py-4 text-lg w-full text-center">
+                            <%= cls %> Grade
+                        </button>
+                        <% }) %>
+            </div>
+        </div>
+
+        <div id="subjectSection" class="space-y-4 hidden animate-in slide-in-from-top-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-gray-700 flex items-center gap-2">
+                    <span
+                        class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-[0_3px_0_#1e40af]">2</span>
+                    Choose a Subject
+                </h2>
+                <button onclick="goBackToClass()" class="text-blue-500 font-bold hover:underline">⬅ Back</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="selectSubject('Mathematics')"
+                    class="neo-card p-6 flex flex-col items-center justify-center gap-2 group">
+                    <span class="text-4xl group-hover:scale-110 transition-transform">📘</span>
+                    <span class="font-bold text-gray-700">Math</span>
+                </button>
+                <button onclick="selectSubject('Science')"
+                    class="neo-card p-6 flex flex-col items-center justify-center gap-2 group">
+                    <span class="text-4xl group-hover:scale-110 transition-transform">🔬</span>
+                    <span class="font-bold text-gray-700">Science</span>
+                </button>
+                <button onclick="selectSubject('Computer Science')"
+                    class="neo-card p-6 flex flex-col items-center justify-center gap-2 group">
+                    <span class="text-4xl group-hover:scale-110 transition-transform">💻</span>
+                    <span class="font-bold text-gray-700">CS</span>
+                </button>
+                <button onclick="selectSubject('English')"
+                    class="neo-card p-6 flex flex-col items-center justify-center gap-2 group">
+                    <span class="text-4xl group-hover:scale-110 transition-transform">📚</span>
+                    <span class="font-bold text-gray-700">English</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="chapterSection" class="space-y-4 hidden animate-in slide-in-from-top-4 pb-12">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-gray-700 flex items-center gap-2">
+                    <span
+                        class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-[0_3px_0_#1e40af]">3</span>
+                    Let's Learn!
+                </h2>
+                <button onclick="goBackToSubject()" class="text-blue-500 font-bold hover:underline">⬅ Back</button>
+            </div>
+            <div id="dynamicChapters" class="space-y-4">
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedClass = null;
+
+        function selectClass(cls) {
+            selectedClass = cls;
+            document.getElementById('classSection').classList.add('hidden');
+            document.getElementById('subjectSection').classList.remove('hidden');
+        }
+
+        function goBackToClass() {
+            document.getElementById('subjectSection').classList.add('hidden');
+            document.getElementById('classSection').classList.remove('hidden');
+        }
+
+        async function selectSubject(sub) {
+            document.getElementById('subjectSection').classList.add('hidden');
+            document.getElementById('chapterSection').classList.remove('hidden');
+
+            const container = document.getElementById('dynamicChapters');
+            container.innerHTML = '<div class="text-center font-bold text-gray-400 py-10">Loading modules...</div>';
+
+            try {
+                const response = await fetch(`/api/content/${selectedClass}/${sub}`);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="text-center font-bold text-gray-500 py-10">Modules coming soon!</div>';
+                    return;
+                }
+
+                container.innerHTML = data.map(item => {
+                    const icon = item.activity_type === 'notes' ? '📖' : item.activity_type === 'quiz' ? '📝' : '🎮';
+                    return `
+                    <div class="neo-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center text-3xl border-2 border-gray-200 shadow-[0_4px_0_#e5e7eb]">
+                                ${icon}
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black text-gray-800">${item.chapter_name}</h3>
+                                <p class="text-sm font-bold text-gray-400 capitalize">${item.activity_type}</p>
+                            </div>
+                        </div>
+                        <a href="/activity/${item.id}" class="btn-chunky btn-green px-8 py-3 w-full sm:w-auto text-center text-white">Start</a>
+                    </div>
+                `;
+                }).join('');
+            } catch (error) {
+                container.innerHTML = '<div class="text-center text-red-500 font-bold py-10">Error loading content.</div>';
+            }
+        }
+
+        function goBackToSubject() {
+            document.getElementById('chapterSection').classList.add('hidden');
+            document.getElementById('subjectSection').classList.remove('hidden');
+        }
+    </script>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/login.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-md mx-auto mt-16 px-4">
+        <div class="neo-card p-8 bg-white">
+            <h2 class="text-3xl font-black text-gray-800 text-center mb-6">Log in to EduQuest</h2>
+            <form id="loginForm" class="space-y-4">
+                <input type="email" id="email" placeholder="Email" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700 transition-all">
+                <input type="password" id="password" placeholder="Password" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700 transition-all">
+                <button type="submit" class="btn-chunky btn-blue w-full py-4 text-lg text-white mt-4">LOGIN</button>
+            </form>
+            <div class="mt-6 text-center">
+                <p class="font-bold text-gray-500">Don't have an account? <a href="/signup"
+                        class="text-blue-500 hover:underline">Sign Up</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem("loggedInUser", JSON.stringify(data.user));
+                    window.location.href = "/dashboard";
+                } else { alert(data.error); }
+            } catch (err) { console.error(err); }
+        });
+    </script>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./FRONTEND/README.md =====
+
+# 🚀 EduPadhai — Gamified Learning Platform
+
+> **Making quality education fun, interactive, and accessible for every student.**
+
+EduPadhai is a full-stack gamified e-learning platform designed for students in Classes 6–12. It combines educational content with game-like mechanics — XP points, ranks, and badges — to encourage consistent learning habits and a genuine excitement for discovery.
+
+---
+
+## 📸 Preview
+
+| Home | Dashboard | Learn |
+|------|-----------|-------|
+| Landing page with course cards | XP bar, stats & badges | Step-by-step class → subject → chapter |
+
+---
+
+## ✨ Features
+
+- 🎮 **Gamified XP System** — Earn experience points by completing lessons, quizzes and games. Level up from Beginner → Scholar → Master.
+- 📚 **Course Library** — Interactive content across Mathematics, Science, Computer Science and English for Classes 6–9.
+- 📝 **Quiz Engine** — Multi-question quizzes with instant feedback, correct/wrong highlighting and XP rewards.
+- 🎯 **Personalized Dashboard** — Real-time stats: lessons completed, quizzes taken, total XP and badges earned.
+- 🔐 **Authentication** — Signup / Login with user data persisted in MySQL.
+- 📱 **Responsive Design** — Neo-Brutalist UI that works on desktop and mobile.
+- ♿ **Accessibility** — Built with rural and low-bandwidth users in mind.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | EJS Templates, Custom CSS (Neo-Brutalist), Vanilla JS |
+| **Backend** | Node.js, Express.js |
+| **Database** | MySQL (JSON columns for curriculum data) |
+| **Styling** | Nunito font, CSS custom properties, Bootstrap 5 grid |
+
+---
+
+## 📂 Project Structure
+
+```
+EDUQUEST/
+├── app.js                        # Main Express server entry point
+├── package.json
+│
+├── BACKEND/
+│   ├── config/
+│   │   └── db.js                 # MySQL connection with auto-reconnect
+│   └── routes/
+│       ├── auth.js               # POST /api/login  POST /api/signup  GET /api/user/:id
+│       └── content.js            # GET /api/content/:class/:subject  POST /api/content/progress/update
+│
+└── FRONTEND/
+    ├── css/
+    │   └── style.css             # Full design system
+    ├── images/                   # Logo and assets
+    ├── index.ejs                 # Landing page
+    ├── dashboard.ejs             # User stats & XP dashboard
+    ├── learn.ejs                 # Class → Subject → Chapter selector
+    ├── activity.ejs              # Notes / Quiz / Game viewer
+    ├── about.ejs                 # About the platform
+    ├── contact.ejs               # Contact details
+    ├── help.ejs                  # Help & FAQ
+    ├── login.ejs                 # Login page
+    ├── signup.ejs                # Signup page
+    ├── header.ejs                # Shared navbar (included in all pages)
+    └── footer.ejs                # Shared footer (included in all pages)
+```
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+ installed
+- MySQL server running locally
+
+---
+
+### 2. Database Setup
+
+Open **MySQL Workbench** (or any MySQL client) and run:
+
+```sql
+CREATE DATABASE eduquest_db;
+USE eduquest_db;
+
+-- Users table
+CREATE TABLE users (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100),
+    email        VARCHAR(100) UNIQUE,
+    phone        VARCHAR(15),
+    password     VARCHAR(255),
+    points       INT DEFAULT 50,
+    badges       INT DEFAULT 1,
+    lessons      INT DEFAULT 0,
+    quizzesTaken INT DEFAULT 0
+);
+
+-- Educational content table
+CREATE TABLE educational_content (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    class_level   VARCHAR(10),
+    subject       VARCHAR(50),
+    chapter_name  VARCHAR(100),
+    activity_type VARCHAR(20),   -- 'notes' | 'quiz' | 'game'
+    content_data  JSON           -- lesson body, quiz questions, or game config
+);
+```
+
+#### Sample content row (quiz):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Fractions Introduction', 'quiz',
+  '{
+    "questions": [
+      {
+        "q": "What is 1/2 + 1/2?",
+        "options": ["1", "2", "1/4", "3/4"],
+        "answer": "1"
+      }
+    ]
+  }'
+);
+```
+
+#### Sample content row (notes):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Introduction to Fractions', 'notes',
+  '{
+    "body": "<h3>What is a Fraction?</h3><p>A fraction represents a part of a whole...</p>"
+  }'
+);
+```
+
+---
+
+### 3. Clone & Install
+
+```bash
+git clone <your-repository-link>
+cd EDUQUEST
+npm install
+```
+
+---
+
+### 4. Configure Database Password
+
+Open `BACKEND/config/db.js` and update your MySQL credentials:
+
+```js
+const db = mysql.createConnection({
+    host:     'localhost',
+    user:     'root',
+    password: 'YOUR_MYSQL_PASSWORD',   // ← change this
+    database: 'eduquest_db'
+});
+```
+
+---
+
+### 5. Run the Server
+
+```bash
+node app.js
+```
+
+```
+╔══════════════════════════════════════╗
+║  🚀 EduPadhai running on port 3000   ║
+║  http://localhost:3000               ║
+╚══════════════════════════════════════╝
+```
+
+Open your browser and visit **http://localhost:3000**
+
+---
+
+## 🔌 API Reference
+
+### Auth Routes — `/api`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/signup` | Register a new user |
+| `POST` | `/api/login` | Login with email & password |
+| `GET`  | `/api/user/:id` | Fetch fresh user data (XP sync) |
+
+### Content Routes — `/api/content`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/content/:class/:subject` | Get all chapters for a class & subject |
+| `POST` | `/api/content/progress/update` | Update user XP after activity completion |
+| `GET`  | `/api/content/static/about` | Static about page data |
+| `GET`  | `/api/content/static/contact` | Static contact page data |
+
+---
+
+## 📖 Usage Guide
+
+1. **Sign Up** — Create a free account with your name, email and phone.
+2. **Login** — Sign in to start tracking your progress.
+3. **Learn** — Go to *Learn*, select your class (6th–9th), pick a subject, and choose a module.
+4. **Complete Activities** — Read notes, take quizzes, or play games to earn XP.
+5. **Dashboard** — Check *My Account* to see your XP bar, badges, lessons and quizzes stats.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Leaderboard page (top students by XP)
+- [ ] Password hashing with bcrypt
+- [ ] Session-based auth (express-session / JWT)
+- [ ] Offline support / PWA
+- [ ] Read Aloud (text-to-speech) for accessibility
+- [ ] Admin panel to add/edit content without SQL
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes please open an issue first.
+
+1. Fork the repository
+2. Create your feature branch — `git checkout -b feature/your-feature`
+3. Commit your changes — `git commit -m 'Add some feature'`
+4. Push to the branch — `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ for rural students across India 🇮🇳</strong>
+</div>
+
+===== FILE: ./FRONTEND/signup.ejs =====
+
+<%- include('header.ejs') %>
+
+    <main class="max-w-md mx-auto mt-16 px-4">
+        <div class="neo-card p-8 bg-white">
+            <h2 class="text-3xl font-black text-gray-800 text-center mb-6">Create Account</h2>
+            <form id="signupForm" class="space-y-4">
+                <input type="text" id="name" placeholder="Full Name" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700">
+                <input type="email" id="email" placeholder="Email" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700">
+                <input type="tel" id="phone" placeholder="Phone Number" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700">
+                <input type="password" id="password" placeholder="Password" required
+                    class="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none font-bold text-gray-700">
+                <button type="submit" class="btn-chunky btn-green w-full py-4 text-lg text-white mt-4">SIGN UP</button>
+            </form>
+            <div class="mt-6 text-center">
+                <p class="font-bold text-gray-500">Already have an account? <a href="/login"
+                        class="text-blue-500 hover:underline">Login</a></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById("signupForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            const name = document.getElementById("name").value;
+            const email = document.getElementById("email").value;
+            const phone = document.getElementById("phone").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, phone, password })
+                });
+                if (res.ok) {
+                    alert("Signup successful! Please login.");
+                    window.location.href = "/login";
+                } else {
+                    const data = await res.json();
+                    alert(data.error || "Signup failed!");
+                }
+            } catch (err) { console.error(err); }
+        });
+    </script>
+
+    <%- include('footer.ejs') %>
+
+===== FILE: ./package.json =====
+
+{
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
+    "mysql2": "^3.19.1"
+  },
+  "name": "sih---project",
+  "version": "1.0.0",
+  "description": "> **Making quality education fun, interactive, and accessible for every student.**",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RajBhokare/SIH---PROJECT.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RajBhokare/SIH---PROJECT/issues"
+  },
+  "homepage": "https://github.com/RajBhokare/SIH---PROJECT#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+
+
+===== FILE: ./project_code.txt =====
+
+
+
+===== FILE: ./README.md =====
+
+# 🚀 EduPadhai — Gamified Learning Platform
+
+> **Making quality education fun, interactive, and accessible for every student.**
+
+EduPadhai is a full-stack gamified e-learning platform designed for students in Classes 6–12. It combines educational content with game-like mechanics — XP points, ranks, and badges — to encourage consistent learning habits and a genuine excitement for discovery.
+
+---
+
+## 📸 Preview
+
+| Home | Dashboard | Learn |
+|------|-----------|-------|
+| Landing page with course cards | XP bar, stats & badges | Step-by-step class → subject → chapter |
+
+---
+
+## ✨ Features
+
+- 🎮 **Gamified XP System** — Earn experience points by completing lessons, quizzes and games. Level up from Beginner → Scholar → Master.
+- 📚 **Course Library** — Interactive content across Mathematics, Science, Computer Science and English for Classes 6–9.
+- 📝 **Quiz Engine** — Multi-question quizzes with instant feedback, correct/wrong highlighting and XP rewards.
+- 🎯 **Personalized Dashboard** — Real-time stats: lessons completed, quizzes taken, total XP and badges earned.
+- 🔐 **Authentication** — Signup / Login with user data persisted in MySQL.
+- 📱 **Responsive Design** — Neo-Brutalist UI that works on desktop and mobile.
+- ♿ **Accessibility** — Built with rural and low-bandwidth users in mind.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | EJS Templates, Custom CSS (Neo-Brutalist), Vanilla JS |
+| **Backend** | Node.js, Express.js |
+| **Database** | MySQL (JSON columns for curriculum data) |
+| **Styling** | Nunito font, CSS custom properties, Bootstrap 5 grid |
+
+---
+
+## 📂 Project Structure
+
+```
+EDUQUEST/
+├── app.js                        # Main Express server entry point
+├── package.json
+│
+├── BACKEND/
+│   ├── config/
+│   │   └── db.js                 # MySQL connection with auto-reconnect
+│   └── routes/
+│       ├── auth.js               # POST /api/login  POST /api/signup  GET /api/user/:id
+│       └── content.js            # GET /api/content/:class/:subject  POST /api/content/progress/update
+│
+└── FRONTEND/
+    ├── css/
+    │   └── style.css             # Full design system
+    ├── images/                   # Logo and assets
+    ├── index.ejs                 # Landing page
+    ├── dashboard.ejs             # User stats & XP dashboard
+    ├── learn.ejs                 # Class → Subject → Chapter selector
+    ├── activity.ejs              # Notes / Quiz / Game viewer
+    ├── about.ejs                 # About the platform
+    ├── contact.ejs               # Contact details
+    ├── help.ejs                  # Help & FAQ
+    ├── login.ejs                 # Login page
+    ├── signup.ejs                # Signup page
+    ├── header.ejs                # Shared navbar (included in all pages)
+    └── footer.ejs                # Shared footer (included in all pages)
+```
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+ installed
+- MySQL server running locally
+
+---
+
+### 2. Database Setup
+
+Open **MySQL Workbench** (or any MySQL client) and run:
+
+```sql
+CREATE DATABASE eduquest_db;
+USE eduquest_db;
+
+-- Users table
+CREATE TABLE users (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100),
+    email        VARCHAR(100) UNIQUE,
+    phone        VARCHAR(15),
+    password     VARCHAR(255),
+    points       INT DEFAULT 50,
+    badges       INT DEFAULT 1,
+    lessons      INT DEFAULT 0,
+    quizzesTaken INT DEFAULT 0
+);
+
+-- Educational content table
+CREATE TABLE educational_content (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    class_level   VARCHAR(10),
+    subject       VARCHAR(50),
+    chapter_name  VARCHAR(100),
+    activity_type VARCHAR(20),   -- 'notes' | 'quiz' | 'game'
+    content_data  JSON           -- lesson body, quiz questions, or game config
+);
+```
+
+#### Sample content row (quiz):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Fractions Introduction', 'quiz',
+  '{
+    "questions": [
+      {
+        "q": "What is 1/2 + 1/2?",
+        "options": ["1", "2", "1/4", "3/4"],
+        "answer": "1"
+      }
+    ]
+  }'
+);
+```
+
+#### Sample content row (notes):
+
+```sql
+INSERT INTO educational_content
+  (class_level, subject, chapter_name, activity_type, content_data)
+VALUES (
+  '6th', 'Mathematics', 'Introduction to Fractions', 'notes',
+  '{
+    "body": "<h3>What is a Fraction?</h3><p>A fraction represents a part of a whole...</p>"
+  }'
+);
+```
+
+---
+
+### 3. Clone & Install
+
+```bash
+git clone <your-repository-link>
+cd EDUQUEST
+npm install
+```
+
+---
+
+### 4. Configure Database Password
+
+Open `BACKEND/config/db.js` and update your MySQL credentials:
+
+```js
+const db = mysql.createConnection({
+    host:     'localhost',
+    user:     'root',
+    password: 'YOUR_MYSQL_PASSWORD',   // ← change this
+    database: 'eduquest_db'
+});
+```
+
+---
+
+### 5. Run the Server
+
+```bash
+node app.js
+```
+
+```
+╔══════════════════════════════════════╗
+║  🚀 EduPadhai running on port 3000   ║
+║  http://localhost:3000               ║
+╚══════════════════════════════════════╝
+```
+
+Open your browser and visit **http://localhost:3000**
+
+---
+
+## 🔌 API Reference
+
+### Auth Routes — `/api`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/signup` | Register a new user |
+| `POST` | `/api/login` | Login with email & password |
+| `GET`  | `/api/user/:id` | Fetch fresh user data (XP sync) |
+
+### Content Routes — `/api/content`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/content/:class/:subject` | Get all chapters for a class & subject |
+| `POST` | `/api/content/progress/update` | Update user XP after activity completion |
+| `GET`  | `/api/content/static/about` | Static about page data |
+| `GET`  | `/api/content/static/contact` | Static contact page data |
+
+---
+
+## 📖 Usage Guide
+
+1. **Sign Up** — Create a free account with your name, email and phone.
+2. **Login** — Sign in to start tracking your progress.
+3. **Learn** — Go to *Learn*, select your class (6th–9th), pick a subject, and choose a module.
+4. **Complete Activities** — Read notes, take quizzes, or play games to earn XP.
+5. **Dashboard** — Check *My Account* to see your XP bar, badges, lessons and quizzes stats.
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Leaderboard page (top students by XP)
+- [ ] Password hashing with bcrypt
+- [ ] Session-based auth (express-session / JWT)
+- [ ] Offline support / PWA
+- [ ] Read Aloud (text-to-speech) for accessibility
+- [ ] Admin panel to add/edit content without SQL
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes please open an issue first.
+
+1. Fork the repository
+2. Create your feature branch — `git checkout -b feature/your-feature`
+3. Commit your changes — `git commit -m 'Add some feature'`
+4. Push to the branch — `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ for rural students across India 🇮🇳</strong>
+</div>

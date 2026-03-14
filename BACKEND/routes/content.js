@@ -2,14 +2,15 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../config/db');
 
-// FIX: specific routes FIRST, generic /:class/:subject LAST
-// (otherwise /:class/:subject intercepts /progress/update and /static/*)
+// NOTE: Specific routes MUST come before the generic /:class/:subject route
+// otherwise Express intercepts /progress/update and /static/* as class/subject params
 
 // POST /api/content/progress/update
 router.post('/progress/update', (req, res) => {
     const { userId, pointsEarned, type } = req.body;
+
     if (!userId || pointsEarned === undefined || !type)
-        return res.status(400).json({ error: "Missing fields" });
+        return res.status(400).json({ error: "Missing required fields: userId, pointsEarned, type" });
 
     let query = "UPDATE users SET points = points + ?";
     if (type === 'quiz')                     query += ", quizzesTaken = quizzesTaken + 1";
@@ -17,7 +18,10 @@ router.post('/progress/update', (req, res) => {
     query += " WHERE id = ?";
 
     db.query(query, [pointsEarned, userId], (err) => {
-        if (err) return res.status(500).json({ error: "Failed to update progress" });
+        if (err) {
+            console.error('Progress update DB error:', err);
+            return res.status(500).json({ error: "Failed to update progress. Please try again." });
+        }
         res.status(200).json({ message: "Progress updated!" });
     });
 });
@@ -25,8 +29,8 @@ router.post('/progress/update', (req, res) => {
 // GET /api/content/static/about
 router.get('/static/about', (req, res) => {
     res.json({
-        title: "🌱 About EduPadhai",
-        paragraphs: ["EduPadhai makes learning fun for every student!"]
+        title: "🌱 About EduQuest",
+        paragraphs: ["EduQuest makes learning fun for every student!"]
     });
 });
 
@@ -34,7 +38,7 @@ router.get('/static/about', (req, res) => {
 router.get('/static/contact', (req, res) => {
     res.json({
         title: "📩 Contact Us",
-        email: "support@edupadhai.com",
+        email: "support@eduquest.in",
         phone: "+91 91234 56789"
     });
 });
@@ -42,11 +46,15 @@ router.get('/static/contact', (req, res) => {
 // GET /api/content/:class/:subject  ← MUST be last
 router.get('/:class/:subject', (req, res) => {
     const { class: classLevel, subject } = req.params;
+
     db.query(
         "SELECT id, chapter_name, activity_type FROM educational_content WHERE class_level = ? AND subject = ? ORDER BY id ASC",
         [classLevel, subject],
         (err, results) => {
-            if (err) return res.status(500).json({ error: "Database error" });
+            if (err) {
+                console.error('Content fetch DB error:', err);
+                return res.status(500).json({ error: "Database error. Please try again." });
+            }
             res.status(200).json(results);
         }
     );

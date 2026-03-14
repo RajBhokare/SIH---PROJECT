@@ -1,58 +1,54 @@
 const mysql = require('mysql2');
-const path  = require('path');
 
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+// Only load .env in local development — Render/Railway inject vars directly
+if (process.env.NODE_ENV !== 'production') {
+    const path = require('path');
+    require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+}
 
-// Support DATABASE_URL (used by Render, Railway, PlanetScale, etc.)
-// Falls back to individual env vars for local development
-let db;
+let poolConfig;
 
 if (process.env.DATABASE_URL) {
     console.log('🔌 Connecting via DATABASE_URL...');
-    db = mysql.createConnection(process.env.DATABASE_URL);
+    poolConfig = process.env.DATABASE_URL;
 } else {
     // Validate required env vars
     const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
     const missing  = required.filter(key => !process.env[key]);
     if (missing.length) {
         console.error(`❌ Missing required env vars: ${missing.join(', ')}`);
-        console.error('   Set them in your .env file (local) or deployment dashboard (production).');
+        console.error('   Set them in your .env file (local) or Render dashboard (production).');
         process.exit(1);
     }
 
-    const config = {
-        host:     process.env.DB_HOST,
-        user:     process.env.DB_USER,
-        password: process.env.DB_PASS || '',
-        database: process.env.DB_NAME,
-        port:     parseInt(process.env.DB_PORT, 10) || 3306
+    poolConfig = {
+        host:               process.env.DB_HOST,
+        user:               process.env.DB_USER,
+        password:           process.env.DB_PASS || '',
+        database:           process.env.DB_NAME,
+        port:               parseInt(process.env.DB_PORT, 10) || 3306,
+        waitForConnections: true,
+        connectionLimit:    10,
+        queueLimit:         0
     };
 
-    console.log(`🔌 Connecting to MySQL as "${config.user}" @ ${config.host}:${config.port}/${config.database}`);
-    db = mysql.createConnection(config);
+    console.log(`🔌 Connecting to MySQL as "${poolConfig.user}" @ ${poolConfig.host}:${poolConfig.port}/${poolConfig.database}`);
 }
 
-function connectDB() {
-    db.connect((err) => {
-        if (err) {
-            console.error('❌ DB connection failed:', err.message);
-            console.log('🔄 Retrying in 5s...');
-            setTimeout(connectDB, 5000);
-            return;
-        }
-        console.log('✅ MySQL connected successfully!');
-    });
+// Use a connection POOL instead of a single connection
+// Pools auto-reconnect and handle dropped connections — no manual reconnect needed
+const pool = mysql.createPool(poolConfig);
 
-    // Auto-reconnect if connection drops
-    db.on('error', (err) => {
-        console.error('⚠️  DB error:', err.code);
-        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
-            connectDB();
-        } else {
-            throw err;
-        }
-    });
-}
+// Test the connection on startup
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('❌ DB connection failed:', err.message);
+        console.error('   Check your DB credentials in Render environment variables.');
+        // Do NOT call process.exit here — let the server start; DB errors will surface per-request
+        return;
+    }
+    console.log('✅ MySQL pool connected successfully!');
+    connection.release();
+});
 
-connectDB();
-module.exports = db;
+module.exports = pool;
