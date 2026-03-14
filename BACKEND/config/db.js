@@ -3,16 +3,34 @@ const path  = require('path');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-const config = {
-    host:     process.env.DB_HOST || 'localhost',
-    user:     process.env.DB_USER || 'root',
-    password: process.env.DB_PASS || '',   // FIX: empty string default, not 'user'
-    database: process.env.DB_NAME || 'eduquest_db'
-};
+// Support DATABASE_URL (used by Render, Railway, PlanetScale, etc.)
+// Falls back to individual env vars for local development
+let db;
 
-console.log(`🔌 Connecting to MySQL as "${config.user}" @ "${config.database}"`);
+if (process.env.DATABASE_URL) {
+    console.log('🔌 Connecting via DATABASE_URL...');
+    db = mysql.createConnection(process.env.DATABASE_URL);
+} else {
+    // Validate required env vars
+    const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
+    const missing  = required.filter(key => !process.env[key]);
+    if (missing.length) {
+        console.error(`❌ Missing required env vars: ${missing.join(', ')}`);
+        console.error('   Set them in your .env file (local) or deployment dashboard (production).');
+        process.exit(1);
+    }
 
-const db = mysql.createConnection(config);
+    const config = {
+        host:     process.env.DB_HOST,
+        user:     process.env.DB_USER,
+        password: process.env.DB_PASS || '',
+        database: process.env.DB_NAME,
+        port:     parseInt(process.env.DB_PORT, 10) || 3306
+    };
+
+    console.log(`🔌 Connecting to MySQL as "${config.user}" @ ${config.host}:${config.port}/${config.database}`);
+    db = mysql.createConnection(config);
+}
 
 function connectDB() {
     db.connect((err) => {
@@ -25,7 +43,7 @@ function connectDB() {
         console.log('✅ MySQL connected successfully!');
     });
 
-    // FIX: auto-reconnect if connection drops
+    // Auto-reconnect if connection drops
     db.on('error', (err) => {
         console.error('⚠️  DB error:', err.code);
         if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
