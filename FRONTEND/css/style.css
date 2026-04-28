@@ -7,12 +7,12 @@ body {
   background-size: 30px 30px;
   margin: 0;
   padding: 0;
-  color: #374151;
+  color: #136eff;
 }
 
 /* Glassmorphism Navbar */
 .glass-nav {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(188, 143, 143, 0.85);
   backdrop-filter: blur(12px);
   border-bottom: 2px solid rgba(229, 231, 235, 0.5);
 }
